@@ -1,10 +1,32 @@
 <template>
-  <div id="nav">
-    <router-link to="/">Home</router-link> |
-    <router-link to="/about">About</router-link>
+  <div class="appbody">
+    <div id="nav">
+      <div class="d-flex flex-column p-3 text-white bg-dark c-navbar">
+        <router-link to="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+          <span class="fs-4">Sidebar</span>
+        </router-link>
+        <hr />
+        <ul class="nav nav-pills flex-column mb-auto">
+          <li class="nav-item">
+            <router-link to="/" active-class="active" href="#" class="nav-link text-white" aria-current="page">
+              Home
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/about" active-class="active" href="#" class="nav-link text-white">
+              Dashboard
+            </router-link>
+          </li>
+        </ul>
+        <hr />
+      </div>
+    </div>
+    <div id="router-view">
+      <router-view />
+    </div>
   </div>
-  <router-view/>
 </template>
+
 
 <style>
 #app {
@@ -15,16 +37,16 @@
   color: #2c3e50;
 }
 
-#nav {
-  padding: 30px;
+.appbody {
+  display: flex;
 }
 
-#nav a {
-  font-weight: bold;
-  color: #2c3e50;
+#router-view {
+  flex-grow: 1;
 }
 
-#nav a.router-link-exact-active {
-  color: #42b983;
+.c-navbar {
+  width: 280px;
+  min-height: 100vh;
 }
 </style>
