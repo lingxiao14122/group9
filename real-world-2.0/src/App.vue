@@ -1,23 +1,25 @@
 <template>
-
-  <div class="window">
-    <div class="window-content">
-      <div class="pane-group">
-        <div class="pane-sm sidebar">
-
-          <nav class="nav-group">
-            <router-link class="nav-group-item" to="/">Home</router-link>
-            <router-link class="nav-group-item" to="/about">About</router-link>
-          </nav>
-          
+  <div class="appcontainer flex flex-row">
+    <div class="sidebar flex-initial bg-gray-100 ">
+      <div class="flex-col mt-5">
+        <div class="text-xl m-3">
+          <router-link active-class="font-bold py-2 px-4 rounded bg-blue-500 text-white" class="" to="/">Home</router-link>
         </div>
-        <div class="pane">
-          <router-view/>
+        <div class="text-xl m-3">
+          <router-link active-class="font-bold py-2 px-4 rounded bg-blue-500 text-white" class="" to="/about">About</router-link>
+        </div>
+        <div class="text-xl m-3">
+          <router-link active-class="font-bold py-2 px-4 rounded bg-blue-500 text-white" class="" to="/folder">Folder</router-link>
+        </div>
+        <div class="text-xl m-3">
+          <router-link active-class="font-bold py-2 px-4 rounded bg-blue-500 text-white" class="" to="/defect">Defect</router-link>
         </div>
       </div>
     </div>
+    <div class="appbody flex-1">
+      <router-view />
+    </div>
   </div>
-  
 </template>
 
 <style>
@@ -40,5 +42,14 @@
 
 #nav a.router-link-exact-active {
   color: #42b983;
+}
+
+.sidebar {
+  min-width: 200px;
+  min-height: 100vh;
+}
+
+.backred {
+  background: red;
 }
 </style>

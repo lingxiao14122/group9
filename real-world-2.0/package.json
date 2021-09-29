@@ -4,6 +4,7 @@
   "private": true,
   "main": "main.js",
   "scripts": {
+    "desk": "electron .",
     "start": "vue-cli-service build && electron .",
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
