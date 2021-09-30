@@ -2,7 +2,9 @@
   "name": "real-world-2.0",
   "version": "0.1.0",
   "private": true,
+  "main": "main.js",
   "scripts": {
+    "start" : "vue-cli-service build && electron .",
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint"
@@ -10,6 +12,7 @@
   "dependencies": {
     "bootstrap-vue": "^2.21.2",
     "core-js": "^3.6.5",
+    "electron": "^15.0.0",
     "vue": "^2.6.11",
     "vue-router": "^3.2.0",
     "vuex": "^3.4.0"
