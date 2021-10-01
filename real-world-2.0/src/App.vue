@@ -1,10 +1,16 @@
 <template>
-  <div id="app">
-    <div id="nav">
-      <router-link to="/">Home</router-link> |
+  <div id="app" class="d-flex">
+    <div id="nav" class="sidebar d-flex flex-column">
+      <router-link to="/">Home</router-link>
       <router-link to="/about">About</router-link>
+      <router-link to="/folders">Folders</router-link>
+      <router-link to="/files">Files</router-link>
+      <router-link to="/defects">Defects</router-link>
+      <router-link to="/segregation">Segregation</router-link>
     </div>
-    <router-view/>
+    <div id="appbody" class="flex-grow-1 bg-appbody">
+      <router-view />
+    </div>
   </div>
 </template>
 
@@ -15,6 +21,7 @@
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
+  height: 100vh;
 }
 
 #nav {
@@ -23,10 +30,18 @@
 
 #nav a {
   font-weight: bold;
-  color: #2c3e50;
+  color: #000000;
+  margin-top: 10px;
+  align-self: flex-start;
 }
 
 #nav a.router-link-exact-active {
   color: #42b983;
+}
+
+.sidebar {
+  background: #dcecfa;
+  width: fit-content;
+  font-size: 1.4rem;
 }
 </style>
