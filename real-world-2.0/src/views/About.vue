@@ -1,7 +1,7 @@
 <template>
   <div class="about">
     <h1>This is an about page</h1>
-    <h1>Fish Sushi</h1>
+    <h1>Beef Taco</h1>
     <button type="button" class="btn btn-primary">test</button>
     <button type="button" @click="openFolder">Open Folder</button>
     <b-img src="../assets/logo.png"></b-img>
