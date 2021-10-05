@@ -43,5 +43,10 @@
   background: #dcecfa;
   width: fit-content;
   font-size: 1.4rem;
+  overflow: hidden;
+}
+
+#appbody {
+  overflow: auto;
 }
 </style>
