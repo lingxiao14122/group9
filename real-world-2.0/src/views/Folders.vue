@@ -1,23 +1,19 @@
 <template>
   <div class="folder">
-    <div>
-      <b-overlay :show="showLoading">
-        <div class="header">
-          <div class="d-flex bg-header pt-5 pb-4">
-            <div class="flex-column ml-5 d-flex justify-content-start">
-              <h1>Folders</h1>
-              <button type="button" class="btn btn-primary btn-lg mt-2" @click="click_new_folder">New Folder</button>
-            </div>
-          </div>
+    <div class="header">
+      <div class="d-flex bg-header pt-5 pb-4">
+        <div class="flex-column ml-5 d-flex justify-content-start">
+          <h1>Folders</h1>
+          <button type="button" class="btn btn-primary btn-lg mt-2" @click="click_new_folder">New Folder</button>
         </div>
-        <div class="apptable">
-          <b-table striped hover :items="items" :fields="fields" @row-clicked="clickHandler">
-            <template #cell(action)>
-              <b-button size="sm" @click="click_detail_btn"> Delete </b-button>
-            </template>
-          </b-table>
-        </div>
-      </b-overlay>
+      </div>
+    </div>
+    <div class="apptable">
+      <b-table striped hover :items="items" :fields="fields" @row-clicked="clickHandler">
+        <template #cell(action)>
+          <b-button size="sm" @click="click_detail_btn"> Delete </b-button>
+        </template>
+      </b-table>
     </div>
   </div>
 </template>
@@ -37,10 +33,14 @@ export default {
   methods: {
     click_new_folder() {
       alert("new folder is clicked! this should open a dialog for user to select folder");
-      this.showLoading = true
+      this.overlayBlocking()
     },
     click_detail_btn: () => {
       alert("YO 🥒🥒🥒🥒🥒🥒");
+    },
+    overlayBlocking() {
+      this.showLoading = !this.showLoading;
+      this.$store.commit("overlayBlockingAppSwitch", this.showLoading);
     },
   },
 };
