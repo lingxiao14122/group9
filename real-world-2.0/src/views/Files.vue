@@ -7,7 +7,7 @@
 
         <!-- NOW TABLE DISPLAYING is for debug only! not a feature! -->
         <h5>NOW TABLE DISPLAYING: {{ tableIsDisplaying }}</h5>
-        
+
         <button type="button" class="btn btn-primary btn-lg mt-2" @click="click_new_folder">New Images</button>
       </div>
     </div>
@@ -15,14 +15,14 @@
     <nav class="bg-dark d-flex flex-row">
       <!-- Button Tab content -->
       <!-- <b-button-group> -->
-        <button class="btn btn-tabs btn-lg" type="button" @click="tabClicked(tabletab.pending)">Pending</button>
+      <button class="btn btn-tabs btn-lg" type="button" @click="tabClicked(tabletab.pending)">Pending</button>
 
-        <button class="btn btn-tabs btn-lg" type="button" @click="tabClicked(tabletab.failed)">Failed</button>
+      <button class="btn btn-tabs btn-lg" type="button" @click="tabClicked(tabletab.failed)">Failed</button>
 
-        <button class="btn btn-tabs btn-lg" type="button" @click="tabClicked(tabletab.passed)">Passed</button>
+      <button class="btn btn-tabs btn-lg" type="button" @click="tabClicked(tabletab.passed)">Passed</button>
 
-        <button class="btn btn-tabs btn-lg" type="button" @click="tabClicked(tabletab.all)">All</button>
-        
+      <button class="btn btn-tabs btn-lg" type="button" @click="tabClicked(tabletab.all)">All</button>
+
       <!-- </b-button-group> -->
     </nav>
 
@@ -96,18 +96,18 @@ export default {
   font-size: 1.25rem;
   line-height: 1.5;
 }
-  
-  .btn:hover {
-    color: #fff;
-    background-color: #fc8181;
-    transform: translateY(-2px);
-    transition: 0.3s;
-    transition-timing-function: ease-in-out;
-  }
+
+.btn:hover {
+  color: #fff;
+  background-color: #fc8181;
+  transform: translateY(-2px);
+  transition: 0.3s;
+  transition-timing-function: ease-in-out;
+}
 
 .btn:focus {
-  box-shadow: 0 0 0 0 #ffc7c7;
-  background-color: #e76e6e;
+  box-shadow: 0 0 0 0;
+  background-color: #ff6161;
 }
 
 /* .btn:focus {
