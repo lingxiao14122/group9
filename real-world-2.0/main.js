@@ -83,14 +83,14 @@ app.on('activate', function () {
 
 ipcMain.on("READ_FOLDER_PATH", (event, payload) => {
 
-      log.info("readFolderPath: User selecting folder path");
+      log.info("readFolderPathChannel: User selecting folder path");
 
       dialog.showOpenDialog({
             title: "Select a folder",
             properties: ["openDirectory"],
       }).then(result => {
             if (result.canceled) {
-                  log.info("readFolderAndImage: canceled selecting folder path");
+                  log.info("readFolderAndImage: Canceled selecting folder path");
                   event.reply("READ_FOLDER_PATH", { result: "canceled" });
             } else {
                   log.info("readFolderAndImage: User selected folder path: " + result.filePaths);
@@ -103,11 +103,11 @@ ipcMain.on("READ_FOLDER_PATH", (event, payload) => {
                         insertLocalDatabaseFolder(databasePath, fileBuffer, process.platform == 'win32' ? path.win32.basename(result.filePaths.toString()) : path.posix.basename(result.filePaths.toString()), result.filePaths);
                         checkFolderDatabaseAndFolder(result.filePaths.toString());
                   } catch (error) {
-                        log.error("readFolderPath: error inserting folder data: \n" + error);
+                        log.error("readFolderPathChannel: Error inserting folder data: \n" + error);
                         event.reply("READ_FOLDER_PATH", { result: "failed" });
                   }
 
-                  log.info("readFolderPath: Folder path saved: " + result.filePaths);
+                  log.info("readFolderPathChannel: Folder path saved: " + result.filePaths);
                   event.reply("READ_FOLDER_PATH", { result: "success" });
             }
       });
@@ -171,10 +171,10 @@ ipcMain.on("DELETE_FOLDER", (event, payload) => {
 ipcMain.on("GET_IMAGES", async (event, payload) => {
 
       if (payload.folder_id === undefined || payload.folder_id === null) {
-            log.error("getImageChannel: Getting all images failed. Reason: unknown folder_id.");
+            log.error("getImagesChannel: Getting all images failed. Reason: unknown folder_id.");
             event.reply("GET_IMAGES", { result: "failed" });
       } else {
-            log.info("getImageChannel: Getting all images from folder database. folder_id: " + payload.folder_id);
+            log.info("getImagesChannel: Getting all images from folder database. folder_id: " + payload.folder_id);
 
             try {
                   var result = await getFolderInfoFromLocalDB(payload.folder_id);
@@ -189,11 +189,11 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
                               imagesItem: imagesResult,
                         };
 
-                        log.error("getImageChannel: Getting all images success, folder_id: " + payload.folder_id);
+                        log.info("getImagesChannel: Getting all images success, folder_id: " + payload.folder_id);
                         event.reply("GET_IMAGES", reply);
                   }
             } catch (error) {
-                  log.error("getImageChannel: Getting all images failed. Reason: " + error);
+                  log.error("getImagesChannel: Getting all images failed. Reason: " + error);
             }
 
       }
@@ -274,7 +274,7 @@ function deleteLocalDatabaseFolder(databasePath, databaseBuffer, folderId) {
 
 function checkFolderDatabaseAndFolder(folderPath) {
 
-      log.info("initFolderDatabaseAndFolder: Start initialize folder database and creating necessary folders. Path: " + folderPath);
+      log.info("checkFolderDatabaseAndFolder: Initializing folder database and creating necessary folders. Path: " + folderPath);
 
       if (!fs.existsSync(path.join(folderPath, "./" + databaseName))) {
             createDatabase(1, path.join(folderPath, "./" + databaseName));
@@ -288,7 +288,7 @@ function checkFolderDatabaseAndFolder(folderPath) {
             fs.mkdirSync(path.join(folderPath, "./failed"));
       }
 
-      log.info("initFolderDatabaseAndFolder: Finish initialize folder database and creating necessary folders. Path: " + folderPath);
+      log.info("checkFolderDatabaseAndFolder: Finish initialize folder database and creating necessary folders. Path: " + folderPath);
 
 }
 
