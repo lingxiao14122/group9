@@ -16,13 +16,13 @@
     <nav class="bg-dark d-flex flex-row">
       <!-- Button Tab content -->
       <!-- <b-button-group> -->
-      <button class="btn btn-tabs btn-lg" type="button" @click="tabClicked(tabletab.pending)">Pending</button>
+      <button class="btn btn-tabs btn-tabs-lg" type="button" @click="tabClicked(tabletab.pending)">Pending</button>
 
-      <button class="btn btn-tabs btn-lg" type="button" @click="tabClicked(tabletab.failed)">Failed</button>
+      <button class="btn btn-tabs btn-tabs-lg" type="button" @click="tabClicked(tabletab.failed)">Failed</button>
 
-      <button class="btn btn-tabs btn-lg" type="button" @click="tabClicked(tabletab.passed)">Passed</button>
+      <button class="btn btn-tabs btn-tabs-lg" type="button" @click="tabClicked(tabletab.passed)">Passed</button>
 
-      <button class="btn btn-tabs btn-lg" type="button" @click="tabClicked(tabletab.all)">All</button>
+      <button class="btn btn-tabs btn-tabs-lg" type="button" @click="tabClicked(tabletab.all)">All</button>
 
       <!-- </b-button-group> -->
     </nav>
@@ -181,13 +181,13 @@ export default {
   width: 10rem;
 }
 
-.btn-lg {
+.btn-tabs-lg {
   padding: 1rem 2rem;
   font-size: 1.25rem;
   line-height: 1.5;
 }
 
-.btn:hover {
+.btn-tabs:hover {
   color: #fff;
   background-color: #fc8181;
   transform: translateY(-2px);
@@ -195,13 +195,9 @@ export default {
   transition-timing-function: ease-in-out;
 }
 
-.btn:focus {
+.btn-tabs:focus {
   box-shadow: 0 0 0 0;
   background-color: #ff6161;
 }
 
-/* .btn:focus {
-  box-shadow: 0 0 0 0 ;
-  background-color: #dd6060;
-} */
 </style>
