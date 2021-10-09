@@ -10,8 +10,8 @@
     </div>
     <div class="apptable">
       <b-table striped hover :items="items" :fields="fields" @row-clicked="clickHandler">
-        <template #cell(action)>
-          <b-button size="sm" @click="click_detail_btn"> Delete </b-button>
+        <template #cell(action) = "row">
+          <b-button size="sm" @click="click_detail_btn(row.index)"> Delete </b-button>
         </template>
       </b-table>
     </div>
@@ -22,21 +22,55 @@
 export default {
   data() {
     return {
-      fields: ["folder_name", "path", "created_date", "action"],
-      items: [
-        { folder_name: "folder1", path: "c:/sasaa/sasas/asasas/", created_date: "01/01/2012", action: "" },
-        { folder_name: "folder2", path: "c:/sasaa/sasas/asasas/", created_date: "01/01/2012", action: "" },
-      ],
+      fields: [
+        {key: "name", label: "Folder Name"},
+        {key: 'path', label: "Folder Path"},
+        {key: 'date_created', label: "Date Created"},
+        "action"
+        ],
+      items: [],
       showLoading: false,
     };
   },
+  mounted(){
+    window.ipc.on("READ_FOLDER_PATH", (payload) => {
+      if(payload.result == "success"){
+        alert("Successful added folder.");
+      }
+      this.overlayBlocking();
+      window.ipc.send("GET_ALL_FOLDER", {});
+    });
+
+    window.ipc.on("GET_ALL_FOLDER", (payload) => {
+      this.items = payload;
+    });
+
+    window.ipc.on("DELETE_FOLDER", (payload) => {
+      if(payload.result == "success"){
+        alert("Successful deleted folder.");
+      }
+      window.ipc.send("GET_ALL_FOLDER", {});
+    });
+
+    window.ipc.send("GET_ALL_FOLDER", {});
+  },
   methods: {
     click_new_folder() {
-      alert("new folder is clicked! this should open a dialog for user to select folder");
-      this.overlayBlocking()
+      this.overlayBlocking();
+      window.ipc.send("READ_FOLDER_PATH", {});
     },
-    click_detail_btn: () => {
-      alert("YO 🥒🥒🥒🥒🥒🥒");
+    click_detail_btn(index) {
+      if(confirm("Are you sure want to delete this folder?")){
+        window.ipc.send("DELETE_FOLDER", {_id: this.items[index]._id});
+      }
+    },
+    clickHandler(tablerow){
+      this.$router.push({
+        name: "Files",
+        params: {
+          folder_id: tablerow._id,
+        },
+      });
     },
     overlayBlocking() {
       this.showLoading = !this.showLoading;

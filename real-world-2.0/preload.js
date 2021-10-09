@@ -1,6 +1,11 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-const validChannels = ['READ_FILE', 'WRITE_FILE', "READ_FOLDER_PATH"];
+const validChannels = [
+      "READ_FOLDER_PATH", 
+      "GET_ALL_FOLDER", 
+      "DELETE_FOLDER",
+      "GET_IMAGES",
+      "TEST"];
 
 contextBridge.exposeInMainWorld(
       'ipc', {
