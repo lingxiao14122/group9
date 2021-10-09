@@ -30,7 +30,8 @@ const routes = [
   {
     path: '/files',
     name: 'Files',
-    component: Files
+    component: Files,
+    props: true
   },
   {
     path: '/defects',
