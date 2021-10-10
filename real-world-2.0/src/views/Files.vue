@@ -166,7 +166,7 @@ export default {
 
 <style scoped>
 .bg-header {
-  background-color: rgb(207, 209, 245);
+  background-color: rgb(182, 201, 253);
 }
 
 .flex-column {
@@ -175,7 +175,7 @@ export default {
 
 .btn-tabs {
   color: #fff;
-  background-color: #ff9494;
+  background-color: #398bf0;
   /* background-color: #fc8c8c; */
   border-radius: 0rem;
   width: 10rem;
@@ -189,7 +189,7 @@ export default {
 
 .btn-tabs:hover {
   color: #fff;
-  background-color: #fc8181;
+  background-color: #2E6FBF;
   transform: translateY(-2px);
   transition: 0.3s;
   transition-timing-function: ease-in-out;
@@ -197,7 +197,7 @@ export default {
 
 .btn-tabs:focus {
   box-shadow: 0 0 0 0;
-  background-color: #ff6161;
+  background-color: #1F4A80;
 }
 
 </style>

@@ -86,7 +86,7 @@ export default {
 }
 
 .bg-header {
-  background-color: rgb(207, 209, 245);
+  background-color: rgb(182, 201, 253);
 }
 
 .flex-column {
