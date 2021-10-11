@@ -16,18 +16,23 @@ Vue.config.productionTip = false
 // global function
 Vue.mixin({
   methods: {
-    toast(toastBody) {
+    toast(toastBody, toastType) {
+
+      const toastVariant = toastType === 'error' ? 'danger' : 'default';
+      const toastTitle = toastType === 'error' ? 'Error' : 'Information';
+
       const vNodesMsg = this.$createElement(
         'p',
-        {class: ['text-break']},
+        {class: ['text-break bg-red']},
         [toastBody]
       )
 
       this.$bvToast.toast([vNodesMsg], {
-        title: "Information",
+        title: toastTitle,
         // title: toastTitle,
         autoHideDelay: 5000,
         solid: true,
+        variant: toastVariant,
         appendToast: false,
       });
     },
