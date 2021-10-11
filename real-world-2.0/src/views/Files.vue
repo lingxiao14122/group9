@@ -121,6 +121,54 @@ export default {
       require: true,
     },
   },
+  methods: {
+    refresh_btn_clicked() {
+      window.ipc.send("GET_IMAGES", { folder_id: this.folder_id });
+    },
+    clickHandler(tablerow, index) {
+      alert("row clicked index: " + index);
+      console.log(tablerow);
+    },
+    tabClicked: function (tabname) {
+      console.log(tabname);
+      this.tableIsDisplaying = tabname;
+      this.switchTable();
+    },
+    switchTable() {
+      if (this.tableIsDisplaying === this.tabletab.pending) {
+        this.fields = this.defaultFields;
+        this.items = this.pendingItems;
+      }
+      if (this.tableIsDisplaying === this.tabletab.passed) {
+        this.fields = this.defaultFields;
+        this.items = this.passedItems;
+      }
+      if (this.tableIsDisplaying === this.tabletab.failed) {
+        this.fields = this.defaultFields;
+        this.items = this.failedItems;
+      }
+      if (this.tableIsDisplaying === this.tabletab.all) {
+        this.fields = this.allFields;
+        this.items = this.allItems;
+      }
+    },
+    transformStatusToString(data) {
+      console.log(data.item.status);
+      let receiveStatusCodeFromTable = data.item.status;
+
+      if (receiveStatusCodeFromTable === 0) {
+        return "the status code is 0";
+      }
+      if (receiveStatusCodeFromTable === 1) {
+        return "the status code is 1";
+      }
+      if (receiveStatusCodeFromTable === 2) {
+        return "the status code is 2";
+      }
+
+      return "err_no_status";
+    },
+  },
   mounted() {
     window.ipc.on("GET_IMAGES", (payload) => {
       if (payload.result === "success") {
@@ -180,54 +228,6 @@ export default {
     });
 
     window.ipc.send("GET_IMAGES", { folder_id: this.folder_id });
-  },
-  methods: {
-    refresh_btn_clicked() {
-      window.ipc.send("GET_IMAGES", { folder_id: this.folder_id });
-    },
-    clickHandler(tablerow, index) {
-      alert("row clicked index: " + index);
-      console.log(tablerow);
-    },
-    tabClicked: function (tabname) {
-      console.log(tabname);
-      this.tableIsDisplaying = tabname;
-      this.switchTable();
-    },
-    switchTable() {
-      if (this.tableIsDisplaying === this.tabletab.pending) {
-        this.fields = this.defaultFields;
-        this.items = this.pendingItems;
-      }
-      if (this.tableIsDisplaying === this.tabletab.passed) {
-        this.fields = this.defaultFields;
-        this.items = this.passedItems;
-      }
-      if (this.tableIsDisplaying === this.tabletab.failed) {
-        this.fields = this.defaultFields;
-        this.items = this.failedItems;
-      }
-      if (this.tableIsDisplaying === this.tabletab.all) {
-        this.fields = this.allFields;
-        this.items = this.allItems;
-      }
-    },
-    transformStatusToString(data) {
-      console.log(data.item.status);
-      let receiveStatusCodeFromTable = data.item.status;
-
-      if (receiveStatusCodeFromTable === 0) {
-        return "the status code is 0";
-      }
-      if (receiveStatusCodeFromTable === 1) {
-        return "the status code is 1";
-      }
-      if (receiveStatusCodeFromTable === 2) {
-        return "the status code is 2";
-      }
-
-      return "err_no_status";
-    },
   },
 };
 </script>

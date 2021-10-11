@@ -32,6 +32,29 @@ export default {
       showLoading: false,
     };
   },
+  methods: {
+    click_new_folder() {
+      this.overlayBlocking();
+      window.ipc.send("READ_FOLDER_PATH", {});
+    },
+    click_detail_btn(index) {
+      if(confirm("Are you sure want to delete this folder?")){
+        window.ipc.send("DELETE_FOLDER", {_id: this.items[index]._id});
+      }
+    },
+    clickHandler(tablerow){
+      this.$router.push({
+        name: "Files",
+        params: {
+          folder_id: tablerow._id,
+        },
+      });
+    },
+    overlayBlocking() {
+      this.showLoading = !this.showLoading;
+      this.$store.commit("overlayBlockingAppSwitch", this.showLoading);
+    },
+  },
   mounted(){
     window.ipc.on("READ_FOLDER_PATH", (payload) => {
       if(payload.result == "success"){
@@ -62,29 +85,6 @@ export default {
     });
 
     window.ipc.send("GET_ALL_FOLDER", {});
-  },
-  methods: {
-    click_new_folder() {
-      this.overlayBlocking();
-      window.ipc.send("READ_FOLDER_PATH", {});
-    },
-    click_detail_btn(index) {
-      if(confirm("Are you sure want to delete this folder?")){
-        window.ipc.send("DELETE_FOLDER", {_id: this.items[index]._id});
-      }
-    },
-    clickHandler(tablerow){
-      this.$router.push({
-        name: "Files",
-        params: {
-          folder_id: tablerow._id,
-        },
-      });
-    },
-    overlayBlocking() {
-      this.showLoading = !this.showLoading;
-      this.$store.commit("overlayBlockingAppSwitch", this.showLoading);
-    },
   },
 };
 </script>
