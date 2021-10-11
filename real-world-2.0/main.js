@@ -81,7 +81,7 @@ app.on('activate', function () {
       if (mainWindow === null) createWindow()
 })
 
-ipcMain.on("READ_FOLDER_PATH", (event, payload) => {
+ipcMain.on("READ_FOLDER_PATH", async (event, payload) => {
 
       log.info("readFolderPathChannel: User selecting folder path");
 
@@ -100,11 +100,11 @@ ipcMain.on("READ_FOLDER_PATH", (event, payload) => {
                   try {
                         fileBuffer = fs.readFileSync(databasePath);
 
-                        insertLocalDatabaseFolder(databasePath, fileBuffer, process.platform == 'win32' ? path.win32.basename(result.filePaths.toString()) : path.posix.basename(result.filePaths.toString()), result.filePaths);
-                        checkFolderDatabaseAndFolder(result.filePaths.toString());
+                        var insertResult = await insertLocalDatabaseFolder(databasePath, fileBuffer, process.platform == 'win32' ? path.win32.basename(result.filePaths.toString()) : path.posix.basename(result.filePaths.toString()), result.filePaths);
+                        var checkResult = await checkFolderDatabaseAndFolder(result.filePaths.toString());
                   } catch (error) {
                         log.error("readFolderPathChannel: Error inserting folder data: \n" + error);
-                        event.reply("READ_FOLDER_PATH", { result: "failed" });
+                        event.reply("READ_FOLDER_PATH", { result: "error", reason: error });
                   }
 
                   log.info("readFolderPathChannel: Folder path saved: " + result.filePaths);
@@ -114,7 +114,7 @@ ipcMain.on("READ_FOLDER_PATH", (event, payload) => {
 
 });
 
-ipcMain.on("GET_ALL_FOLDER", (event, payload) => {
+ipcMain.on("GET_ALL_FOLDER", async (event, payload) => {
 
       log.info("getAllFolderChannel: Getting all folder from local database");
       var fileBuffer;
@@ -137,18 +137,18 @@ ipcMain.on("GET_ALL_FOLDER", (event, payload) => {
                   db.close();
 
                   log.info("getAllFolderChannel: Got all folder from local database");
-                  event.reply("GET_ALL_FOLDER", result);
+                  event.reply("GET_ALL_FOLDER", { result: "success", items: result });
             });
 
       } catch (error) {
             log.warn("getAllFolderChannel: Getting all folder from local database failed: \n" + error);
-            createDatabase(0, databasePath);
-            event.reply("GET_ALL_FOLDER", []);
+            var createResult = await createDatabase(0, databasePath);
+            event.reply("GET_ALL_FOLDER", { result: "error", reason: error, solution: "Recreate new database.", createResult: createResult });
       }
 
 });
 
-ipcMain.on("DELETE_FOLDER", (event, payload) => {
+ipcMain.on("DELETE_FOLDER", async (event, payload) => {
 
       log.info("deleteFolderChannel: Deleting folder _id: " + payload._id);
       var fileBuffer;
@@ -157,13 +157,13 @@ ipcMain.on("DELETE_FOLDER", (event, payload) => {
       try {
             fileBuffer = fs.readFileSync(databasePath);
 
-            deleteLocalDatabaseFolder(databasePath, fileBuffer, payload._id);
+            var deleteResult = await deleteLocalDatabaseFolder(databasePath, fileBuffer, payload._id);
 
             log.info("deleteFolderChannel: Deleting folder successful");
             event.reply("DELETE_FOLDER", { result: "success" });
       } catch (error) {
             log.error("deleteFolderChannel: Delete folder failed: \n" + error);
-            event.reply("DELETE_FOLDER", { result: "failed" });
+            event.reply("DELETE_FOLDER", { result: "error", reason: error });
       }
 
 });
@@ -172,28 +172,30 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
 
       if (payload.folder_id === undefined || payload.folder_id === null) {
             log.error("getImagesChannel: Getting all images failed. Reason: unknown folder_id.");
-            event.reply("GET_IMAGES", { result: "failed" });
+            event.reply("GET_IMAGES", { result: "error", reason: "Unknown folder_id" });
       } else {
             log.info("getImagesChannel: Getting all images from folder database. folder_id: " + payload.folder_id);
 
             try {
-                  var result = await getFolderInfoFromLocalDB(payload.folder_id);
+                  var getResult = await getFolderInfoFromLocalDB(payload.folder_id);
 
-                  var result1 = await scanFolderImages(result[0].path);
+                  var scanResult = await scanFolderImages(getResult.item[0].path);
 
-                  if (result1.result === "success") {
-                        var imagesResult = await getAllImages(result[0].path);
+                  if (getResult.result === "success" && scanResult.result === "success") {
+                        var imagesResult = await getAllImages(getResult.item[0].path);
 
                         var reply = {
-                              folderInfo: result[0],
-                              imagesItem: imagesResult,
+                              result: "success",
+                              folderInfo: getResult.item[0].path,
+                              imagesItem: imagesResult.items,
                         };
 
                         log.info("getImagesChannel: Getting all images success, folder_id: " + payload.folder_id);
                         event.reply("GET_IMAGES", reply);
-                  }
+                  } 
             } catch (error) {
                   log.error("getImagesChannel: Getting all images failed. Reason: " + error);
+                  event.reply("GET_IMAGES", { result: "error", reason: error });
             }
 
       }
@@ -206,89 +208,101 @@ ipcMain.on("TEST", (event, payload) => {
 
 function createDatabase(databaseType, databasePath) {
 
-      var logDatabaseType = databaseType === 0 ? "local database" : "folder database";
-      log.info("createDatabase: Creating database type: " + logDatabaseType + "; path: " + databasePath);
-      var buffer;
+      return new Promise((resolve, reject) => {
+            var logDatabaseType = databaseType === 0 ? "local database" : "folder database";
+            log.info("createDatabase: Creating database type: " + logDatabaseType + "; path: " + databasePath);
+            var buffer;
 
-      initSqlJs().then((SQL) => {
-            const db = new SQL.Database();
+            initSqlJs().then((SQL) => {
+                  const db = new SQL.Database();
 
-            if (databaseType === 0) {
-                  db.run(createLocalDb);
-            } else {
-                  db.run(createFolderDb);
-            }
+                  if (databaseType === 0) {
+                        db.run(createLocalDb);
+                  } else {
+                        db.run(createFolderDb);
+                  }
 
-            buffer = new Buffer(db.export());
-            fs.writeFileSync(databasePath, buffer);
+                  buffer = new Buffer(db.export());
+                  fs.writeFileSync(databasePath, buffer);
 
-            db.close();
+                  db.close();
 
+            });
+
+            log.info("createDatabase: Created database type: " + logDatabaseType + " path: " + databasePath);
+            resolve({ result: "success" });
       });
-
-      log.info("createDatabase: Created database type: " + logDatabaseType + " path: " + databasePath);
 
 }
 
 function insertLocalDatabaseFolder(databasePath, databaseBuffer, folderName, folderPath) {
 
-      log.info("insertLocalDatabaseFolder: Inserting local database with folder path: " + folderPath);
-      var buffer;
-      var currentDate = getCurrentDateTime();
+      return new Promise((resolve, reject) => {
+            log.info("insertLocalDatabaseFolder: Inserting local database with folder path: " + folderPath);
+            var buffer;
+            var currentDate = getCurrentDateTime();
 
-      initSqlJs().then((SQL) => {
-            const db = new SQL.Database(databaseBuffer);
+            initSqlJs().then((SQL) => {
+                  const db = new SQL.Database(databaseBuffer);
 
-            db.run("INSERT INTO folder_location (name, path, date_created, soft_delete) \
-                        VALUES ('" + folderName + "', '" + folderPath + "', '" + currentDate + "', 0);");
+                  db.run("INSERT INTO folder_location (name, path, date_created, soft_delete) \
+                              VALUES ('" + folderName + "', '" + folderPath + "', '" + currentDate + "', 0);");
 
-            buffer = new Buffer(db.export());
-            fs.writeFileSync(databasePath, buffer);
+                  buffer = new Buffer(db.export());
+                  fs.writeFileSync(databasePath, buffer);
 
-            db.close();
+                  db.close();
+            });
+
+            resolve({ result: "success" });
+            log.info("insertLocalDatabaseFolder: Inserted local database with folder path: " + folderPath);
       });
-
-      log.info("insertLocalDatabaseFolder: Inserted local database with folder path: " + folderPath);
 
 }
 
 function deleteLocalDatabaseFolder(databasePath, databaseBuffer, folderId) {
 
-      log.info("deleteLocalDatabaseFolder: Deleting local database with folder path: " + folderId);
-      var buffer;
+      return new Promise((resolve, reject) => {
+            log.info("deleteLocalDatabaseFolder: Deleting local database with folder path: " + folderId);
+            var buffer;
 
-      initSqlJs().then((SQL) => {
-            const db = new SQL.Database(databaseBuffer);
+            initSqlJs().then((SQL) => {
+                  const db = new SQL.Database(databaseBuffer);
 
-            db.run("DELETE FROM folder_location WHERE _id = " + folderId);
+                  db.run("UPDATE folder_location SET soft_delete = 1 WHERE _id = " + folderId + ";");
 
-            buffer = new Buffer(db.export());
-            fs.writeFileSync(databasePath, buffer);
+                  buffer = new Buffer(db.export());
+                  fs.writeFileSync(databasePath, buffer);
 
-            db.close();
+                  db.close();
+            });
+
+            log.info("deleteLocalDatabaseFolder: Deleted local database with folder path: " + folderId);
+            resolve({ result: "success" });
       });
-
-      log.info("deleteLocalDatabaseFolder: Deleted local database with folder path: " + folderId);
 
 }
 
 function checkFolderDatabaseAndFolder(folderPath) {
 
-      log.info("checkFolderDatabaseAndFolder: Initializing folder database and creating necessary folders. Path: " + folderPath);
+      return new Promise((resolve, reject) => {
+            log.info("checkFolderDatabaseAndFolder: Initializing folder database and creating necessary folders. Path: " + folderPath);
 
-      if (!fs.existsSync(path.join(folderPath, "./" + databaseName))) {
-            createDatabase(1, path.join(folderPath, "./" + databaseName));
-      }
+            if (!fs.existsSync(path.join(folderPath, "./" + databaseName))) {
+                  createDatabase(1, path.join(folderPath, "./" + databaseName));
+            }
 
-      if (!fs.existsSync(path.join(folderPath, "./pass"))) {
-            fs.mkdirSync(path.join(folderPath, "./pass"));
-      }
+            if (!fs.existsSync(path.join(folderPath, "./pass"))) {
+                  fs.mkdirSync(path.join(folderPath, "./pass"));
+            }
 
-      if (!fs.existsSync(path.join(folderPath, "./failed"))) {
-            fs.mkdirSync(path.join(folderPath, "./failed"));
-      }
+            if (!fs.existsSync(path.join(folderPath, "./failed"))) {
+                  fs.mkdirSync(path.join(folderPath, "./failed"));
+            }
 
-      log.info("checkFolderDatabaseAndFolder: Finish initialize folder database and creating necessary folders. Path: " + folderPath);
+            resolve({ result: "success" });
+            log.info("checkFolderDatabaseAndFolder: Finish initialize folder database and creating necessary folders. Path: " + folderPath);
+      });
 
 }
 
@@ -315,12 +329,12 @@ function getFolderInfoFromLocalDB(folder_id) {
                         db.close();
 
                         log.info("getFolderInfoFromLocalDB: successful getting folder info from local database.");
-                        resolve(result);
+                        resolve({ result: "success", item: result });
                   });
 
             } catch (error) {
                   log.error("getFolderInfoFromLocalDB: failed getting folder info from local database.\n" + error);
-                  reject(error);
+                  reject({ result: "error", reason: error });
             }
 
       });
@@ -390,7 +404,7 @@ function scanFolderImages(folderPath) {
                   });
             } catch (error) {
                   log.error("scanFolderImages: failed initializing images scanning and verify integrity of database. Folder path: " + folderPath + "\n" + error);
-                  reject(error);
+                  reject({result: "error", reason: error});
             }
       });
 
@@ -419,12 +433,12 @@ function getAllImages(folderPath) {
                         db.close();
 
                         log.info("getAllImages: got all images from folder database, folder path: " + folderPath);
-                        resolve(result);
+                        resolve({result: "success", items: result});
                   });
 
             } catch (error) {
                   log.error("getAllImages: failed getting all images from folder database, folder path: " + folderPath + "\n" + error);
-                  reject(error);
+                  reject({ result: "error", reason: error });
             }
       });
 
