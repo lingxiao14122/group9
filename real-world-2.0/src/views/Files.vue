@@ -212,8 +212,8 @@ export default {
         this.count.failed = count.failed;
 
         this.switchTable();
-      } else if(payload.result === "error"){
-        alert("Failed getting folder images info.");
+      } else if(payload.result == "error"){
+        this.toast("Failed getting folder images info.", "error");
 
         this.count.all = 0;
         this.count.pending = 0;
