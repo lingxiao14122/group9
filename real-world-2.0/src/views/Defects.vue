@@ -21,15 +21,15 @@
     </div>
     <div class="appmodal">
       <b-modal v-model="showModal" id="modal-defect-form" title="New Defect Category">
-        <b-form id="formm" @submit="onSubmit" @reset="onReset">
+        <b-form id="b-form-1" @submit="onSubmit" @reset="onReset">
           <b-form-group id="input-group-1" label="Defect Name:" label-for="input-1">
             <b-form-input id="input-1" v-model="form.defectName" placeholder="Enter defect name" required>
             </b-form-input>
           </b-form-group>
         </b-form>
         <template #modal-footer>
-          <b-button type="reset" form="formm">Reset</b-button>
-          <b-button type="submit" form="formm" variant="primary">Submit</b-button>
+          <b-button type="reset" form="b-form-1">Reset</b-button>
+          <b-button type="submit" form="b-form-1" variant="primary">Submit</b-button>
         </template>
       </b-modal>
     </div>
