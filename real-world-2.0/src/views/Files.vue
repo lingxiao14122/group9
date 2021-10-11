@@ -157,13 +157,13 @@ export default {
       let receiveStatusCodeFromTable = data.item.status;
 
       if (receiveStatusCodeFromTable === 0) {
-        return "the status code is 0";
+        return "Pending";
       }
       if (receiveStatusCodeFromTable === 1) {
-        return "the status code is 1";
+        return "Passed";
       }
       if (receiveStatusCodeFromTable === 2) {
-        return "the status code is 2";
+        return "Failed";
       }
 
       return "err_no_status";
