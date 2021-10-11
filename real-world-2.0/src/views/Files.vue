@@ -5,33 +5,69 @@
         <h1>{{ folderInfo.name }}</h1>
         <h5>Folder Location: {{ folderInfo.path }}</h5>
         <h5>
-          {{ count.pending }} images pending, {{ count.passed }} images pass, {{ count.failed }} images failed, total
-          {{ count.all }} images
+          {{ count.pending }} images pending, {{ count.passed }} images pass,
+          {{ count.failed }} images failed, total {{ count.all }} images
         </h5>
 
         <!-- NOW TABLE DISPLAYING is for debug only! not a feature! -->
         <h5>NOW TABLE DISPLAYING: {{ tableIsDisplaying }}</h5>
 
-        <button type="button" class="btn btn-primary btn-lg mt-2" @click="refresh_btn_clicked">Refresh</button>
+        <button
+          type="button"
+          class="btn btn-primary btn-lg mt-2"
+          @click="refresh_btn_clicked"
+        >
+          Refresh
+        </button>
       </div>
     </div>
 
     <nav class="bg-dark d-flex flex-row">
       <!-- Button Tab content -->
       <!-- <b-button-group> -->
-      <button class="btn btn-tabs btn-tabs-lg" type="button" @click="tabClicked(tabletab.pending)">Pending</button>
+      <button
+        class="btn btn-tabs btn-tabs-lg"
+        type="button"
+        @click="tabClicked(tabletab.pending)"
+      >
+        Pending
+      </button>
 
-      <button class="btn btn-tabs btn-tabs-lg" type="button" @click="tabClicked(tabletab.failed)">Failed</button>
+      <button
+        class="btn btn-tabs btn-tabs-lg"
+        type="button"
+        @click="tabClicked(tabletab.failed)"
+      >
+        Failed
+      </button>
 
-      <button class="btn btn-tabs btn-tabs-lg" type="button" @click="tabClicked(tabletab.passed)">Passed</button>
+      <button
+        class="btn btn-tabs btn-tabs-lg"
+        type="button"
+        @click="tabClicked(tabletab.passed)"
+      >
+        Passed
+      </button>
 
-      <button class="btn btn-tabs btn-tabs-lg" type="button" @click="tabClicked(tabletab.all)">All</button>
+      <button
+        class="btn btn-tabs btn-tabs-lg"
+        type="button"
+        @click="tabClicked(tabletab.all)"
+      >
+        All
+      </button>
 
       <!-- </b-button-group> -->
     </nav>
 
     <div id="Table">
-      <b-table striped hover :items="items" :fields="fields" @row-clicked="clickHandler">
+      <b-table
+        striped
+        hover
+        :items="items"
+        :fields="fields"
+        @row-clicked="clickHandler"
+      >
         <template #cell(status)="data">
           {{ transformStatusToString(data) }}
         </template>
@@ -87,46 +123,60 @@ export default {
   },
   mounted() {
     window.ipc.on("GET_IMAGES", (payload) => {
-      this.allItems = payload.imagesItem;
-      this.folderInfo = payload.folderInfo;
+      if (payload.result === "success") {
+        this.allItems = payload.imagesItem;
+        this.folderInfo = payload.folderInfo;
 
-      var count = {
-        all: 0,
-        pending: 0,
-        passed: 0,
-        failed: 0,
-      };
+        var count = {
+          all: 0,
+          pending: 0,
+          passed: 0,
+          failed: 0,
+        };
 
-      var images = {
-        pending: [],
-        passed: [],
-        failed: [],
-      };
+        var images = {
+          pending: [],
+          passed: [],
+          failed: [],
+        };
 
-      this.allItems.forEach(function (item) {
-        count.all++;
-        if (item.status === 0) {
-          images.pending.push(item);
-          count.pending++;
-        } else if (item.status === 1) {
-          images.passed.push(item);
-          count.passed++;
-        } else if (item.status === 2) {
-          images.failed.push(item);
-          count.failed++;
-        }
-      });
+        this.allItems.forEach(function (item) {
+          count.all++;
+          if (item.status === 0) {
+            images.pending.push(item);
+            count.pending++;
+          } else if (item.status === 1) {
+            images.passed.push(item);
+            count.passed++;
+          } else if (item.status === 2) {
+            images.failed.push(item);
+            count.failed++;
+          }
+        });
 
-      this.pendingItems = images.pending;
-      this.passedItems = images.passed;
-      this.failedItems = images.failed;
+        this.pendingItems = images.pending;
+        this.passedItems = images.passed;
+        this.failedItems = images.failed;
 
-      this.count.all = count.all;
-      this.count.pending = count.pending;
-      this.count.passed = count.passed;
-      this.count.failed = count.failed;
+        this.count.all = count.all;
+        this.count.pending = count.pending;
+        this.count.passed = count.passed;
+        this.count.failed = count.failed;
 
-      this.switchTable();
+        this.switchTable();
+      } else if(payload.result === "error"){
+        alert("Failed getting folder images info.");
+
+        this.count.all = 0;
+        this.count.pending = 0;
+        this.count.passed = 0;
+        this.count.failed = 0;
+
+        this.allItems = [];
+        this.pendingItems = [];
+        this.passedItems = [];
+        this.failedItems = [];
+      }
     });
 
     window.ipc.send("GET_IMAGES", { folder_id: this.folder_id });
@@ -164,16 +214,16 @@ export default {
     },
     transformStatusToString(data) {
       console.log(data.item.status);
-      let receiveStatusCodeFromTable = data.item.status
+      let receiveStatusCodeFromTable = data.item.status;
 
       if (receiveStatusCodeFromTable === 0) {
-        return "the status code is 0"
+        return "the status code is 0";
       }
       if (receiveStatusCodeFromTable === 1) {
-        return "the status code is 1"
+        return "the status code is 1";
       }
       if (receiveStatusCodeFromTable === 2) {
-        return "the status code is 2"
+        return "the status code is 2";
       }
 
       return "err_no_status";
