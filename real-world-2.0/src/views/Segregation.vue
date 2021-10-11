@@ -494,7 +494,7 @@ export default {
   methods: {
     // purpose of this function is just to modify this.currentImage state only
     loadNextImage(direction) {
-        //direction 0 no move, direction 1 move forward, direction -1 move previous
+      //direction 0 no move, direction 1 forward, direction -1 previous
       this.currentImageIndex = this.currentImageIndex + direction;
       console.log("at index : " + this.currentImageIndex);
 
@@ -504,6 +504,13 @@ export default {
       let completeImagePath = this.pathToFolder + "\\" + currentImageName;
       console.log(completeImagePath);
       this.currentImage = completeImagePath;
+    },
+    makeToast(append = false) {
+      this.$bvToast.toast("toast message from node", {
+        title: "Information",
+        autoHideDelay: 5000,
+        appendToast: append,
+      });
     },
   },
   mounted() {
