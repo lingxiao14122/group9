@@ -88,7 +88,7 @@ ipcMain.on("READ_FOLDER_PATH", async (event, payload) => {
       dialog.showOpenDialog({
             title: "Select a folder",
             properties: ["openDirectory"],
-      }).then(result => {
+      }).then(async result => {
             if (result.canceled) {
                   log.info("readFolderAndImage: Canceled selecting folder path");
                   event.reply("READ_FOLDER_PATH", { result: "canceled" });
@@ -186,7 +186,7 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
 
                         var reply = {
                               result: "success",
-                              folderInfo: getResult.item[0].path,
+                              folderInfo: getResult.item[0],
                               imagesItem: imagesResult.items,
                         };
 

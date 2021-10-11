@@ -34,9 +34,9 @@ export default {
   },
   mounted(){
     window.ipc.on("READ_FOLDER_PATH", (payload) => {
-      if(payload.result === "success"){
+      if(payload.result == "success"){
         alert("Successful adding folder.");
-      } else if(payload.result === "error"){
+      } else if(payload.result == "error"){
         alert("Failed adding folder.");
       }
       this.overlayBlocking();
@@ -44,18 +44,18 @@ export default {
     });
 
     window.ipc.on("GET_ALL_FOLDER", (payload) => {
-      if(payload.result === "success"){
-        this.items = payload;
-      } else if(payload.result === "error"){
+      if(payload.result == "success"){
+        this.items = payload.items;
+      } else if(payload.result == "error"){
         alert("Failed getting all folder info.");
         this.items = [];
       }
     });
 
     window.ipc.on("DELETE_FOLDER", (payload) => {
-      if(payload.result === "success"){
+      if(payload.result == "success"){
         alert("Successful deleting folder.");
-      } else if(payload.result === "error") {
+      } else if(payload.result == "error") {
         alert("Failed deleting folder.");
       }
       window.ipc.send("GET_ALL_FOLDER", {});
