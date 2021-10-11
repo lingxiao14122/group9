@@ -58,7 +58,7 @@ export default {
   background: #dcecfa;
   width: fit-content;
   font-size: 1.4rem;
-  overflow: hidden;
+  overflow:visible;
 }
 
 #appbody {
