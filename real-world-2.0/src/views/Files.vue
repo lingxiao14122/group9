@@ -2,13 +2,16 @@
   <div class="header">
     <div class="d-flex bg-header pt-5 pb-4">
       <div class="flex-column ml-5 d-flex justify-content-start">
-        <h1>{{folderInfo.name}}</h1>
-        <h5>Folder Location: {{folderInfo.path}}</h5>
-        <h5>{{count.pending}} images pending, {{count.passed}} images pass, {{count.failed}} images failed, total {{count.all}} images</h5>
+        <h1>{{ folderInfo.name }}</h1>
+        <h5>Folder Location: {{ folderInfo.path }}</h5>
+        <h5>
+          {{ count.pending }} images pending, {{ count.passed }} images pass, {{ count.failed }} images failed, total
+          {{ count.all }} images
+        </h5>
 
         <!-- NOW TABLE DISPLAYING is for debug only! not a feature! -->
         <h5>NOW TABLE DISPLAYING: {{ tableIsDisplaying }}</h5>
-        
+
         <button type="button" class="btn btn-primary btn-lg mt-2" @click="refresh_btn_clicked">Refresh</button>
       </div>
     </div>
@@ -29,8 +32,8 @@
 
     <div id="Table">
       <b-table striped hover :items="items" :fields="fields" @row-clicked="clickHandler">
-        <template #cell(action)>
-          <b-button size="sm" @click="click_action_btn"> Delete </b-button>
+        <template #cell(status)="data">
+          {{ transformStatusToString(data) }}
         </template>
       </b-table>
     </div>
@@ -42,24 +45,24 @@ export default {
   data() {
     return {
       fields: [
-        {key: "name", label: "Image Name"},
-        {key: "date_created", label: "Date Created"}
+        { key: "name", label: "Image Name" },
+        { key: "date_created", label: "Date Created" },
       ],
       defaultFields: [
-        {key: "name", label: "Image Name"},
-        {key: "date_created", label: "Date Created"}
+        { key: "name", label: "Image Name" },
+        { key: "date_created", label: "Date Created" },
       ],
       allFields: [
-        {key: "name", label: "Image Name"},
-        {key: "status", label: "Status"},
-        {key: "date_created", label: "Date Created"}
+        { key: "name", label: "Image Name" },
+        { key: "status", label: "Status" },
+        { key: "date_created", label: "Date Created" },
       ],
       items: [],
       allItems: [],
       pendingItems: [],
       passedItems: [],
       failedItems: [],
-      count:{
+      count: {
         pending: 0,
         passed: 0,
         failed: 0,
@@ -80,9 +83,9 @@ export default {
     folder_id: {
       type: Number,
       require: true,
-    }
+    },
   },
-  mounted(){
+  mounted() {
     window.ipc.on("GET_IMAGES", (payload) => {
       this.allItems = payload.imagesItem;
       this.folderInfo = payload.folderInfo;
@@ -91,24 +94,24 @@ export default {
         all: 0,
         pending: 0,
         passed: 0,
-        failed: 0
-      }
+        failed: 0,
+      };
 
       var images = {
         pending: [],
         passed: [],
         failed: [],
-      }
+      };
 
-      this.allItems.forEach(function(item) {
+      this.allItems.forEach(function (item) {
         count.all++;
-        if(item.status === 0){
+        if (item.status === 0) {
           images.pending.push(item);
           count.pending++;
-        } else if(item.status === 1){
+        } else if (item.status === 1) {
           images.passed.push(item);
           count.passed++;
-        } else if(item.status === 2){
+        } else if (item.status === 2) {
           images.failed.push(item);
           count.failed++;
         }
@@ -126,11 +129,11 @@ export default {
       this.switchTable();
     });
 
-    window.ipc.send("GET_IMAGES", {folder_id: this.folder_id});
+    window.ipc.send("GET_IMAGES", { folder_id: this.folder_id });
   },
   methods: {
     refresh_btn_clicked() {
-      window.ipc.send("GET_IMAGES", {folder_id: this.folder_id});
+      window.ipc.send("GET_IMAGES", { folder_id: this.folder_id });
     },
     clickHandler(tablerow, index) {
       alert("row clicked index: " + index);
@@ -141,24 +144,40 @@ export default {
       this.tableIsDisplaying = tabname;
       this.switchTable();
     },
-    switchTable(){
-      if(this.tableIsDisplaying === this.tabletab.pending){
+    switchTable() {
+      if (this.tableIsDisplaying === this.tabletab.pending) {
         this.fields = this.defaultFields;
         this.items = this.pendingItems;
       }
-      if(this.tableIsDisplaying === this.tabletab.passed){
+      if (this.tableIsDisplaying === this.tabletab.passed) {
         this.fields = this.defaultFields;
         this.items = this.passedItems;
       }
-      if(this.tableIsDisplaying === this.tabletab.failed){
+      if (this.tableIsDisplaying === this.tabletab.failed) {
         this.fields = this.defaultFields;
         this.items = this.failedItems;
       }
-      if(this.tableIsDisplaying === this.tabletab.all){
+      if (this.tableIsDisplaying === this.tabletab.all) {
         this.fields = this.allFields;
         this.items = this.allItems;
       }
-    }
+    },
+    transformStatusToString(data) {
+      console.log(data.item.status);
+      let receiveStatusCodeFromTable = data.item.status
+
+      if (receiveStatusCodeFromTable === 0) {
+        return "the status code is 0"
+      }
+      if (receiveStatusCodeFromTable === 1) {
+        return "the status code is 1"
+      }
+      if (receiveStatusCodeFromTable === 2) {
+        return "the status code is 2"
+      }
+
+      return "err_no_status";
+    },
   },
 };
 </script>
@@ -189,7 +208,7 @@ export default {
 
 .btn-tabs:hover {
   color: #fff;
-  background-color: #2E6FBF;
+  background-color: #2e6fbf;
   transform: translateY(-2px);
   transition: 0.3s;
   transition-timing-function: ease-in-out;
@@ -197,7 +216,6 @@ export default {
 
 .btn-tabs:focus {
   box-shadow: 0 0 0 0;
-  background-color: #1F4A80;
+  background-color: #1f4a80;
 }
-
 </style>
