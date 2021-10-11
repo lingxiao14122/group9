@@ -13,6 +13,27 @@ Vue.use(BootstrapVueIcons)
 
 Vue.config.productionTip = false
 
+// global function
+Vue.mixin({
+  methods: {
+    toast(toastBody) {
+      const vNodesMsg = this.$createElement(
+        'p',
+        {class: ['text-break']},
+        [toastBody]
+      )
+
+      this.$bvToast.toast([vNodesMsg], {
+        title: "Information",
+        // title: toastTitle,
+        autoHideDelay: 5000,
+        solid: true,
+        appendToast: false,
+      });
+    },
+  }
+})
+
 new Vue({
   router,
   store,
