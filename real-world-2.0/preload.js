@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 const validChannels = [
+      "CHECK_LOCAL_DB_INTEGRITY",
       "READ_FOLDER_PATH", 
       "GET_ALL_FOLDER", 
       "DELETE_FOLDER",

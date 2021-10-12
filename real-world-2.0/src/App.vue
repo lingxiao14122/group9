@@ -21,6 +21,21 @@ export default {
   data() {
     return {};
   },
+  mounted() {
+    window.ipc.on("CHECK_LOCAL_DB_INTEGRITY", (payload) => {
+      console.log(payload);
+      if(payload.result == "error"){
+        if(payload.code == 1){
+          this.toast(payload.reason + "\nSolution: " + payload.solution, "error");
+        } else {
+          this.toast("Failed checking local database integrity.");
+        }
+        
+      }
+    });
+
+    window.ipc.send("CHECK_LOCAL_DB_INTEGRITY", {});
+  },
   computed: {
     overlayBlocking() {
       return this.$store.state.overlayBlockingApp;

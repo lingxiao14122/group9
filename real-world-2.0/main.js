@@ -5,12 +5,15 @@ const path = require("path");
 
 const fs = require('fs');
 
+const crypto = require("crypto");
+
 const initSqlJs = require('sql.js/dist/sql-wasm');
 
 const databaseName = "database.sqlite";
+const databaseChecksumName = "database_checksum.dat";
 
 const createLocalDb = " \
-                        CREATE TABLE folder_location (_id INTEGER PRIMARY KEY, name TEXT, path TEXT, date_created TEXT, soft_delete INTEGER); \
+                        CREATE TABLE folder_location (_id INTEGER PRIMARY KEY, name TEXT, path TEXT, date_created TEXT, checksum TEXT, soft_delete INTEGER); \
                         CREATE TABLE defect_category (_id INTEGER PRIMARY KEY, name TEXT, date_created TEXT, soft_delete INTEGER); \
                         ";
 
@@ -73,13 +76,93 @@ console.log(app);
 app.on('ready', createWindow)
 
 app.on('window-all-closed', function () {
-      log.info("App quitting");
+      log.info("App quitting...");
+      log.info("Saving database checksum to " + databaseChecksumName + "...");
+
+      var databaseBuffer = fs.readFileSync(path.join(app.getAppPath(), "./" + databaseName));
+      var databaseChecksum = crypto.createHash("sha256");
+      databaseChecksum.update(databaseBuffer);
+
+      try {
+            fs.writeFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), databaseChecksum.digest("hex"));
+            log.info("Saved database checksum to " + databaseChecksumName);
+      } catch (error) {
+            log.error("Failed saving database checksum to " + databaseChecksumName + ": " + error);
+      }
+
       if (process.platform !== 'darwin') app.quit()
 })
 
 app.on('activate', function () {
       if (mainWindow === null) createWindow()
 })
+
+ipcMain.on("CHECK_LOCAL_DB_INTEGRITY", async (event, payload) => {
+      log.info("checkLocalDBIntegrityChannel: Checking local database integrity...");
+
+      var localDBExist = fs.existsSync(path.join(app.getAppPath(), "./" + databaseName));
+      var localDBChecksumExist = fs.existsSync(path.join(app.getAppPath(), "./" + databaseChecksumName));
+
+      try {
+
+            if (!localDBExist && !localDBChecksumExist) {
+                  log.info("checkLocalDBIntegrityChannel: Creating new local database and checksum value...");
+
+                  var createResult = await createDatabase(0, path.join(app.getAppPath(), "./database.sqlite"));
+                  fs.writeFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), "");
+
+                  log.info("checkLocalDBIntegrityChannel: Successful create new local database and checksum value");
+                  event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "success" });
+            } else {
+
+                  if (!localDBExist || !localDBChecksumExist) {
+                        log.warn("checkLocalDBIntegrityChannel: local database or database checksum file are missing, recreating new database and checksum...");
+
+                        if(localDBExist){
+                              log.warn("checkLocalDBIntegrityChannel: local database exist, backing up database and create new database and checksum");
+                              var renameResult = await renameDatabase(app.getAppPath());
+                              var createResult = await createDatabase(0, path.join(app.getAppPath(), "./" + databaseName));
+
+                              fs.writeFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), "");
+                        } else {
+                              var createResult = await createDatabase(0, path.join(app.getAppPath(), "./" + databaseName));
+
+                              fs.writeFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), "");
+                        }
+
+                        log.info("checkLocalDBIntegrityChannel: Successful create new database and checksum");
+                        event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "error", code: 1, reason: "Database checksum not same.", solution: "Old database has backed up and recreated." });
+                        
+                  } else {
+
+                        var hash = fs.readFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), "utf-8");
+
+                        var databaseBuffer = fs.readFileSync(path.join(app.getAppPath(), "./" + databaseName));
+                        var databaseChecksum = crypto.createHash("sha256");
+                        databaseChecksum.update(databaseBuffer);
+
+                        if (hash !== databaseChecksum.digest("hex")) {
+                              log.warn("checkLocalDBIntegrityChannel: Database checksum are different, backup old one and creating new database...");
+                              var renameResult = await renameDatabase(app.getAppPath());
+                              var createResult = await createDatabase(0, path.join(app.getAppPath(), "./" + databaseName));
+
+                              fs.writeFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), "");
+                              event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "error", code: 1, reason: "Database checksum not same.", solution: "Old database has backed up and recreated." });
+                        } else {
+                              log.info("checkLocalDBIntegrityChannel: Successful checking local database integrity");
+                              event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "success" });
+                        }
+
+                  }
+
+            }
+
+      } catch (error) {
+            log.error("checkLocalDBIntegrityChannel: Failed getting " + databaseChecksumName + " file: \n" + error);
+            event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "error", code: 2, reason: error });
+      }
+
+});
 
 ipcMain.on("READ_FOLDER_PATH", async (event, payload) => {
 
@@ -142,8 +225,7 @@ ipcMain.on("GET_ALL_FOLDER", async (event, payload) => {
 
       } catch (error) {
             log.warn("getAllFolderChannel: Getting all folder from local database failed: \n" + error);
-            var createResult = await createDatabase(0, databasePath);
-            event.reply("GET_ALL_FOLDER", { result: "error", reason: error, solution: "Recreate new database.", createResult: createResult });
+            event.reply("GET_ALL_FOLDER", { result: "error", reason: error });
       }
 
 });
@@ -192,7 +274,7 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
 
                         log.info("getImagesChannel: Getting all images success, folder_id: " + payload.folder_id);
                         event.reply("GET_IMAGES", reply);
-                  } 
+                  }
             } catch (error) {
                   log.error("getImagesChannel: Getting all images failed. Reason: " + error);
                   event.reply("GET_IMAGES", { result: "error", reason: error });
@@ -205,6 +287,24 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
 ipcMain.on("TEST", (event, payload) => {
 
 });
+
+function renameDatabase(databasePathWithoutFilename) {
+
+      return new Promise((resolve, reject) => {
+            log.info("renameDatabase: Renaming database, path: " + path.join(databasePathWithoutFilename, databaseName));
+            try {
+                  if (fs.existsSync(path.join(databasePathWithoutFilename, databaseName))) {
+                        fs.rename(path.join(databasePathWithoutFilename, databaseName), path.join(databasePathWithoutFilename, "database_backup_" + getCurrentDateTimeNumber() + ".sqlite"), () => {
+                              log.info("renameDatabase: Renamed database from " + path.join(databasePathWithoutFilename, databaseName) + " to " + path.join(databasePathWithoutFilename, "database_backup_" + getCurrentDateTimeNumber() + ".sqlite"));
+                              resolve({ result: "success" });
+                        });
+                  }
+            } catch (error) {
+                  log.warn("renameDatabase: Failed renaming database, path: " + databasePathWithoutFilename + "/" + databaseName + "\n" + error);
+                  reject(error);
+            }
+      });
+}
 
 function createDatabase(databaseType, databasePath) {
 
@@ -404,7 +504,7 @@ function scanFolderImages(folderPath) {
                   });
             } catch (error) {
                   log.error("scanFolderImages: failed initializing images scanning and verify integrity of database. Folder path: " + folderPath + "\n" + error);
-                  reject({result: "error", reason: error});
+                  reject({ result: "error", reason: error });
             }
       });
 
@@ -433,7 +533,7 @@ function getAllImages(folderPath) {
                         db.close();
 
                         log.info("getAllImages: got all images from folder database, folder path: " + folderPath);
-                        resolve({result: "success", items: result});
+                        resolve({ result: "success", items: result });
                   });
 
             } catch (error) {
