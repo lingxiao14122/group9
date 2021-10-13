@@ -18,7 +18,7 @@ const createLocalDb = " \
                         ";
 
 const createFolderDb = " \
-                        CREATE TABLE images (_id INTEGER PRIMARY KEY, name TEXT, path TEXT, status INTEGER, defect_name TEXT, date_created TEXT, soft_delete INTEGER); \
+                        CREATE TABLE images (_id INTEGER PRIMARY KEY, name TEXT, path TEXT, status INTEGER, defect_name TEXT, date_created TEXT); \
                         ";
 
 const selectAllFolderLocalDb = " \
@@ -26,12 +26,12 @@ const selectAllFolderLocalDb = " \
                         ";
 
 const selectAllImagesFolderDb = " \
-                        SELECT * FROM images WHERE soft_delete = 0; \
+                        SELECT * FROM images; \
                         ";
 
 const folderIgnoreFilesName = [
       "database.sqlite",
-      "pass",
+      "passed",
       "failed"
 ];
 
@@ -72,7 +72,6 @@ function createWindow() {
       })
       log.info("Main Window created and showed");
 }
-console.log(app);
 app.on('ready', createWindow)
 
 app.on('window-all-closed', function () {
@@ -109,7 +108,11 @@ ipcMain.on("CHECK_LOCAL_DB_INTEGRITY", async (event, payload) => {
                   log.info("checkLocalDBIntegrityChannel: Creating new local database and checksum value...");
 
                   var createResult = await createDatabase(0, path.join(app.getAppPath(), "./database.sqlite"));
-                  fs.writeFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), "");
+                  if (createResult.result === "success") {
+                        fs.writeFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), createResult.checksum);
+                  } else {
+                        fs.writeFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), "");
+                  }
 
                   log.info("checkLocalDBIntegrityChannel: Successful create new local database and checksum value");
                   event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "success" });
@@ -118,7 +121,7 @@ ipcMain.on("CHECK_LOCAL_DB_INTEGRITY", async (event, payload) => {
                   if (!localDBExist || !localDBChecksumExist) {
                         log.warn("checkLocalDBIntegrityChannel: local database or database checksum file are missing, recreating new database and checksum...");
 
-                        if(localDBExist){
+                        if (localDBExist) {
                               log.warn("checkLocalDBIntegrityChannel: local database exist, backing up database and create new database and checksum");
                               var renameResult = await renameDatabase(app.getAppPath());
                               var createResult = await createDatabase(0, path.join(app.getAppPath(), "./" + databaseName));
@@ -132,7 +135,7 @@ ipcMain.on("CHECK_LOCAL_DB_INTEGRITY", async (event, payload) => {
 
                         log.info("checkLocalDBIntegrityChannel: Successful create new database and checksum");
                         event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "error", code: 1, reason: "Database checksum not same.", solution: "Old database has backed up and recreated." });
-                        
+
                   } else {
 
                         var hash = fs.readFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), "utf-8");
@@ -146,7 +149,7 @@ ipcMain.on("CHECK_LOCAL_DB_INTEGRITY", async (event, payload) => {
                               var renameResult = await renameDatabase(app.getAppPath());
                               var createResult = await createDatabase(0, path.join(app.getAppPath(), "./" + databaseName));
 
-                              fs.writeFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), "");
+                              fs.writeFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), createResult.checksum);
                               event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "error", code: 1, reason: "Database checksum not same.", solution: "Old database has backed up and recreated." });
                         } else {
                               log.info("checkLocalDBIntegrityChannel: Successful checking local database integrity");
@@ -183,8 +186,15 @@ ipcMain.on("READ_FOLDER_PATH", async (event, payload) => {
                   try {
                         fileBuffer = fs.readFileSync(databasePath);
 
-                        var insertResult = await insertLocalDatabaseFolder(databasePath, fileBuffer, process.platform == 'win32' ? path.win32.basename(result.filePaths.toString()) : path.posix.basename(result.filePaths.toString()), result.filePaths);
                         var checkResult = await checkFolderDatabaseAndFolder(result.filePaths.toString());
+
+                        if (checkResult.result === "success") {
+                              var insertResult = await insertLocalDatabaseFolder(databasePath, fileBuffer, process.platform == 'win32' ? path.win32.basename(result.filePaths.toString()) : path.posix.basename(result.filePaths.toString()), result.filePaths, checkResult.databaseChecksum);
+                        } else {
+                              log.error("readFolderPathChannel: Error inserting folder data: \n" + result.reason);
+                              event.reply("READ_FOLDER_PATH", { result: "error", reason: result.reason });
+                        }
+
                   } catch (error) {
                         log.error("readFolderPathChannel: Error inserting folder data: \n" + error);
                         event.reply("READ_FOLDER_PATH", { result: "error", reason: error });
@@ -254,30 +264,45 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
 
       if (payload.folder_id === undefined || payload.folder_id === null) {
             log.error("getImagesChannel: Getting all images failed. Reason: unknown folder_id.");
-            event.reply("GET_IMAGES", { result: "error", reason: "Unknown folder_id" });
+            event.reply("GET_IMAGES", { result: "error", code: 2, reason: "Unknown folder_id" });
       } else {
             log.info("getImagesChannel: Getting all images from folder database. folder_id: " + payload.folder_id);
 
             try {
                   var getResult = await getFolderInfoFromLocalDB(payload.folder_id);
+                  var checkIntegrityResult = await checkFolderDbIntegrity(getResult.item[0].path, getResult.item[0].checksum);
 
-                  var scanResult = await scanFolderImages(getResult.item[0].path);
+                  if (checkIntegrityResult.result === "success") {
+                        var scanResult = await scanFolderImages(getResult.item[0].path);
+                        var updateResult = await updateFolderDatabaseChecksum(getResult.item[0]._id, scanResult.checksum);
+                        if (getResult.result === "success" && scanResult.result === "success") {
+                              var imagesResult = await getAllImages(getResult.item[0].path);
 
-                  if (getResult.result === "success" && scanResult.result === "success") {
-                        var imagesResult = await getAllImages(getResult.item[0].path);
+                              var reply = {
+                                    result: "success",
+                                    folderInfo: getResult.item[0],
+                                    imagesItem: imagesResult.items,
+                              };
 
-                        var reply = {
-                              result: "success",
-                              folderInfo: getResult.item[0],
-                              imagesItem: imagesResult.items,
-                        };
-
-                        log.info("getImagesChannel: Getting all images success, folder_id: " + payload.folder_id);
-                        event.reply("GET_IMAGES", reply);
+                              log.info("getImagesChannel: Getting all images success, folder_id: " + payload.folder_id);
+                              event.reply("GET_IMAGES", reply);
+                        }
                   }
+
             } catch (error) {
-                  log.error("getImagesChannel: Getting all images failed. Reason: " + error);
-                  event.reply("GET_IMAGES", { result: "error", reason: error });
+
+                  if(error.result === "error"){
+                        log.warn("getImagesChannel: Folder database Integrity not complete, reason: " + error.reason);
+                        log.info("getImagesChannel: Recreating new folder database and checking necessary folders..., path: " + getResult.item[0].path);
+                        var checkResult = await checkFolderDatabaseAndFolder(getResult.item[0].path, true);
+                        var updateResult = await updateFolderDatabaseChecksum(getResult.item[0]._id, checkResult.databaseChecksum);
+
+                        log.info("getImagesChannel: Recreated new folder database and checking necessary folders..., path: " + getResult.item[0].path);
+                        event.reply("GET_IMAGES", { result: "error", code: 1, reason: error.reason, solution: "Recreated Folder Database and checked necessary folders." });
+                  } else {
+                        log.error("getImagesChannel: Getting all images failed. Reason: " + JSON.stringify(error));
+                        event.reply("GET_IMAGES", { result: "error", code: 3, reason: JSON.stringify(error) });
+                  }
             }
 
       }
@@ -312,6 +337,7 @@ function createDatabase(databaseType, databasePath) {
             var logDatabaseType = databaseType === 0 ? "local database" : "folder database";
             log.info("createDatabase: Creating database type: " + logDatabaseType + "; path: " + databasePath);
             var buffer;
+            var checksum = crypto.createHash("sha256");
 
             initSqlJs().then((SQL) => {
                   const db = new SQL.Database();
@@ -327,15 +353,16 @@ function createDatabase(databaseType, databasePath) {
 
                   db.close();
 
+                  checksum.update(buffer);
+                  log.info("createDatabase: Created database type: " + logDatabaseType + " path: " + databasePath);
+                  resolve({ result: "success", checksum: checksum.digest("hex") });
             });
 
-            log.info("createDatabase: Created database type: " + logDatabaseType + " path: " + databasePath);
-            resolve({ result: "success" });
       });
 
 }
 
-function insertLocalDatabaseFolder(databasePath, databaseBuffer, folderName, folderPath) {
+function insertLocalDatabaseFolder(databasePath, databaseBuffer, folderName, folderPath, folderDbChecksum) {
 
       return new Promise((resolve, reject) => {
             log.info("insertLocalDatabaseFolder: Inserting local database with folder path: " + folderPath);
@@ -345,8 +372,8 @@ function insertLocalDatabaseFolder(databasePath, databaseBuffer, folderName, fol
             initSqlJs().then((SQL) => {
                   const db = new SQL.Database(databaseBuffer);
 
-                  db.run("INSERT INTO folder_location (name, path, date_created, soft_delete) \
-                              VALUES ('" + folderName + "', '" + folderPath + "', '" + currentDate + "', 0);");
+                  db.run("INSERT INTO folder_location (name, path, date_created, checksum, soft_delete) \
+                              VALUES ('" + folderName + "', '" + folderPath + "', '" + currentDate + "', '" + folderDbChecksum + "', 0);");
 
                   buffer = new Buffer(db.export());
                   fs.writeFileSync(databasePath, buffer);
@@ -383,25 +410,53 @@ function deleteLocalDatabaseFolder(databasePath, databaseBuffer, folderId) {
 
 }
 
-function checkFolderDatabaseAndFolder(folderPath) {
+function updateFolderDatabaseChecksum(folderId, checksum){
 
       return new Promise((resolve, reject) => {
-            log.info("checkFolderDatabaseAndFolder: Initializing folder database and creating necessary folders. Path: " + folderPath);
+            log.info("updateFolderDatabaseChecksum: Changing new checksum value in database, folder_id: " + folderId);
 
-            if (!fs.existsSync(path.join(folderPath, "./" + databaseName))) {
-                  createDatabase(1, path.join(folderPath, "./" + databaseName));
+            var databasePath = path.join(app.getAppPath(), "./" + databaseName);
+            var databaseBuffer, buffer;
+
+            try {
+                  databaseBuffer = fs.readFileSync(databasePath);
+
+                  initSqlJs().then((SQL) => {
+                        const db = new SQL.Database(databaseBuffer);
+                        db.run("UPDATE folder_location SET checksum = '" + checksum + "' WHERE _id = " + folderId + ";");
+
+                        buffer = new Buffer(db.export());
+                        fs.writeFileSync(databasePath, buffer);
+
+                        log.info("updateFolderDatabaseChecksum: Successful change new checksum value in database, folder_id: " + folderId);
+                        resolve({result: "success"});
+                  });
+            } catch(error) {
+                  log.error("updateFolderDatabaseChecksum: Failed change new checksum value in database, folder_id: " + folderId + "\n" + error);
+                  reject({result: "error", reason: error});
             }
 
-            if (!fs.existsSync(path.join(folderPath, "./pass"))) {
-                  fs.mkdirSync(path.join(folderPath, "./pass"));
+      });
+
+}
+
+function checkFolderDatabaseAndFolder(folderPath, integrityError = false) {
+
+      return new Promise(async (resolve, reject) => {
+            log.info("checkFolderDatabaseAndFolder: Creating folder database and creating necessary folders. Path: " + folderPath);
+            
+            var result = await createDatabase(1, path.join(folderPath, "./" + databaseName));
+
+            if (!fs.existsSync(path.join(folderPath, "./passed"))) {
+                  fs.mkdirSync(path.join(folderPath, "./passed"));
             }
 
             if (!fs.existsSync(path.join(folderPath, "./failed"))) {
                   fs.mkdirSync(path.join(folderPath, "./failed"));
             }
 
-            resolve({ result: "success" });
-            log.info("checkFolderDatabaseAndFolder: Finish initialize folder database and creating necessary folders. Path: " + folderPath);
+            resolve({ result: "success", databaseChecksum: result.checksum });
+            log.info("checkFolderDatabaseAndFolder: Finish create folder database and creating necessary folders. Path: " + folderPath);
       });
 
 }
@@ -441,6 +496,36 @@ function getFolderInfoFromLocalDB(folder_id) {
 
 }
 
+function checkFolderDbIntegrity(folderPath, folderChecksum) {
+
+      return new Promise((resolve, reject) => {
+            log.info("checkFolderDbIntegrity: Checking folder database integrity, path: " + folderPath);
+
+            var folderDbExist = fs.existsSync(path.join(folderPath, "./" + databaseName));
+
+            if (folderDbExist) {
+
+                  var databaseBuffer = fs.readFileSync(path.join(folderPath, "./" + databaseName));
+                  var databaseChecksum = crypto.createHash("sha256");
+                  databaseChecksum.update(databaseBuffer);
+                  var hex = databaseChecksum.digest("hex");
+
+                  if (folderChecksum === hex) {
+                        log.info("checkFolderDbIntegrity: Successful checking folder database integrity");
+                        resolve({ result: "success" });
+                  } else {
+                        log.error("checkFolderDbIntegrity: Failed getting folder database: database checksum not same");
+                        reject({ result: "error", reason: "Folder database checksum not same." });
+                  }
+
+            } else {
+                  log.error("checkFolderDbIntegrity: Failed getting folder database: file not exist");
+                  reject({ result: "error", reason: "Folder database file not exist." });
+            }
+      });
+
+}
+
 function scanFolderImages(folderPath) {
 
       return new Promise((resolve, reject) => {
@@ -455,7 +540,7 @@ function scanFolderImages(folderPath) {
                         const db = new SQL.Database(databaseBuffer);
                         var statement = db.prepare(selectAllImagesFolderDb);
 
-                        log.info("scanFolderImages: deleting folder database images data not in folder.");
+                        log.info("scanFolderImages: deleting folder database images record not in folder.");
 
                         while (statement.step()) {
                               imageInfo = statement.getAsObject();
@@ -471,36 +556,38 @@ function scanFolderImages(folderPath) {
                                     }
 
                                     db.run("DELETE FROM images WHERE _id = " + imageInfo._id);
-                                    log.info("scanFolderImages: deleted folder database images. Name: " + imageInfo.name);
+                                    log.info("scanFolderImages: Image not exist in folder, deleted folder database, image record. Name: " + imageInfo.name);
                               } else {
-                                    log.info("scanFolderImages: ignore delete folder database images. Name: " + imageInfo.name);
+                                    log.info("scanFolderImages: Image exist in folder and folder database, ignore delete folder database, image record. Name: " + imageInfo.name);
                               }
                         }
 
-                        log.info("scanFolderImages: finish deleting folder database images data not in folder.");
-                        log.info("scanFolderImages: inserting new images into folder database.");
+                        log.info("scanFolderImages: finish deleting folder database images record not in folder.");
+                        log.info("scanFolderImages: inserting new images info into folder database.");
 
                         fs.readdirSync(folderPath).forEach(file => {
                               statement.reset();
                               if (!folderIgnoreFilesName.includes(file)) {
-                                    statement = db.prepare("SELECT COUNT(_id) AS count FROM images WHERE name = '" + file + "' AND soft_delete = 0;");
+                                    statement = db.prepare("SELECT COUNT(_id) AS count FROM images WHERE name = '" + file + "';");
                                     statement.step();
 
                                     if (statement.getAsObject().count === 0) {
-                                          db.run("INSERT INTO images (name, path, status, defect_name, date_created, soft_delete) VALUES ('" + file + "', '" + path.join(folderPath, file) + "', " + imageStatus.pending + ", '', '" + getCurrentDateTime() + "', 0)");
-                                          log.info("scanFolderImages: inserted new images into folder database, image name: " + file);
+                                          db.run("INSERT INTO images (name, path, status, defect_name, date_created) VALUES ('" + file + "', '" + path.join(folderPath, file) + "', " + imageStatus.pending + ", '', '" + getCurrentDateTime() + "')");
+                                          log.info("scanFolderImages: New image detected, inserted new image into folder database, image name: " + file);
                                     } else {
-                                          log.info("scanFolderImages: ignore insert images into folder database, image name: " + file);
+                                          log.info("scanFolderImages: Image exist in folder and folder database, ignore insert images into folder database, image name: " + file);
                                     }
                               }
                         });
 
                         buffer = new Buffer(db.export());
                         fs.writeFileSync(databasePath, buffer);
-                        log.info("scanFolderImages: finish inserting new images into folder database.");
+                        log.info("scanFolderImages: finish inserting new images info into folder database.");
                         statement.reset();
                         db.close();
-                        resolve({ result: "success" });
+                        var databaseChecksum = crypto.createHash("sha256");
+                        databaseChecksum.update(buffer);
+                        resolve({ result: "success", checksum: databaseChecksum.digest("hex") });
                   });
             } catch (error) {
                   log.error("scanFolderImages: failed initializing images scanning and verify integrity of database. Folder path: " + folderPath + "\n" + error);

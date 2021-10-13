@@ -30,7 +30,7 @@ Vue.mixin({
       this.$bvToast.toast([vNodesMsg], {
         title: toastTitle,
         // title: toastTitle,
-        autoHideDelay: 5000,
+        autoHideDelay: 3000,
         solid: true,
         variant: toastVariant,
         appendToast: false,

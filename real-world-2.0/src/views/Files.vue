@@ -213,7 +213,6 @@ export default {
 
         this.switchTable();
       } else if(payload.result == "error"){
-        this.toast("Failed getting folder images info.", "error");
 
         this.count.all = 0;
         this.count.pending = 0;
@@ -224,6 +223,17 @@ export default {
         this.pendingItems = [];
         this.passedItems = [];
         this.failedItems = [];
+
+        if(payload.code == 1){
+          this.toast("Failed getting folder images info. Reason: " + payload.reason + " " + payload.solution, "error");
+          this.toast("Getting folder images info again.");
+          window.ipc.send("GET_IMAGES", { folder_id: this.folder_id });
+        } else if(payload.code == 2){
+          this.toast("Failed getting folder images info. Reason: " + payload.reason, "error");
+        } else {
+          this.toast("Failed getting folder images info.", "error");
+        }
+
       }
     });
 
