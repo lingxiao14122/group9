@@ -30,9 +30,16 @@ const selectAllImagesFolderDb = " \
                         ";
 
 const folderIgnoreFilesName = [
-      "database.sqlite",
+      "appdata",
       "passed",
       "failed"
+];
+
+const folderImagesFileTypes = [
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".bmp",
 ];
 
 const imageStatus = {
@@ -190,6 +197,14 @@ ipcMain.on("READ_FOLDER_PATH", async (event, payload) => {
 
                         if (checkResult.result === "success") {
                               var insertResult = await insertLocalDatabaseFolder(databasePath, fileBuffer, process.platform == 'win32' ? path.win32.basename(result.filePaths.toString()) : path.posix.basename(result.filePaths.toString()), result.filePaths, checkResult.databaseChecksum);
+
+                              if(insertResult.result === "warn"){
+                                    log.warn("readFolderPathChannel: Folder already exist in local database, path: " + result.filePaths);
+                                    event.reply("READ_FOLDER_PATH", { result: "warn", reason: insertResult.reason });
+                              } else {
+                                    log.info("readFolderPathChannel: Folder path saved: " + result.filePaths);
+                                    event.reply("READ_FOLDER_PATH", { result: "success" });
+                              }
                         } else {
                               log.error("readFolderPathChannel: Error inserting folder data: \n" + result.reason);
                               event.reply("READ_FOLDER_PATH", { result: "error", reason: result.reason });
@@ -200,8 +215,6 @@ ipcMain.on("READ_FOLDER_PATH", async (event, payload) => {
                         event.reply("READ_FOLDER_PATH", { result: "error", reason: error });
                   }
 
-                  log.info("readFolderPathChannel: Folder path saved: " + result.filePaths);
-                  event.reply("READ_FOLDER_PATH", { result: "success" });
             }
       });
 
@@ -291,7 +304,7 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
 
             } catch (error) {
 
-                  if(error.result === "error"){
+                  if (error.result === "error") {
                         log.warn("getImagesChannel: Folder database Integrity not complete, reason: " + error.reason);
                         log.info("getImagesChannel: Recreating new folder database and checking necessary folders..., path: " + getResult.item[0].path);
                         var checkResult = await checkFolderDatabaseAndFolder(getResult.item[0].path, true);
@@ -372,17 +385,26 @@ function insertLocalDatabaseFolder(databasePath, databaseBuffer, folderName, fol
             initSqlJs().then((SQL) => {
                   const db = new SQL.Database(databaseBuffer);
 
-                  db.run("INSERT INTO folder_location (name, path, date_created, checksum, soft_delete) \
+                  const statement = db.prepare("SELECT COUNT(_id) AS count FROM folder_location WHERE path = '" + folderPath + "' AND soft_delete = 0;");
+                  statement.step();
+
+                  if(statement.getAsObject().count === 0){
+                        db.run("INSERT INTO folder_location (name, path, date_created, checksum, soft_delete) \
                               VALUES ('" + folderName + "', '" + folderPath + "', '" + currentDate + "', '" + folderDbChecksum + "', 0);");
 
-                  buffer = new Buffer(db.export());
-                  fs.writeFileSync(databasePath, buffer);
+                        buffer = new Buffer(db.export());
+                        fs.writeFileSync(databasePath, buffer);
+
+                        resolve({ result: "success" });
+                        log.info("insertLocalDatabaseFolder: Inserted local database with folder path: " + folderPath);
+                  } else {
+                        log.warn("insertLocalDatabaseFolder: Folder already exist in local database, path: " + folderPath);
+                        resolve({result: "warn", reason: "Folder already exist in local database."});
+                  }
 
                   db.close();
             });
 
-            resolve({ result: "success" });
-            log.info("insertLocalDatabaseFolder: Inserted local database with folder path: " + folderPath);
       });
 
 }
@@ -410,7 +432,7 @@ function deleteLocalDatabaseFolder(databasePath, databaseBuffer, folderId) {
 
 }
 
-function updateFolderDatabaseChecksum(folderId, checksum){
+function updateFolderDatabaseChecksum(folderId, checksum) {
 
       return new Promise((resolve, reject) => {
             log.info("updateFolderDatabaseChecksum: Changing new checksum value in database, folder_id: " + folderId);
@@ -429,11 +451,11 @@ function updateFolderDatabaseChecksum(folderId, checksum){
                         fs.writeFileSync(databasePath, buffer);
 
                         log.info("updateFolderDatabaseChecksum: Successful change new checksum value in database, folder_id: " + folderId);
-                        resolve({result: "success"});
+                        resolve({ result: "success" });
                   });
-            } catch(error) {
+            } catch (error) {
                   log.error("updateFolderDatabaseChecksum: Failed change new checksum value in database, folder_id: " + folderId + "\n" + error);
-                  reject({result: "error", reason: error});
+                  reject({ result: "error", reason: error });
             }
 
       });
@@ -444,8 +466,12 @@ function checkFolderDatabaseAndFolder(folderPath, integrityError = false) {
 
       return new Promise(async (resolve, reject) => {
             log.info("checkFolderDatabaseAndFolder: Creating folder database and creating necessary folders. Path: " + folderPath);
-            
-            var result = await createDatabase(1, path.join(folderPath, "./" + databaseName));
+
+            if (!fs.existsSync(path.join(folderPath, "./appdata"))) {
+                  fs.mkdirSync(path.join(folderPath, "./appdata"));
+            }
+
+            var result = await createDatabase(1, path.join(folderPath, "./appdata/" + databaseName));
 
             if (!fs.existsSync(path.join(folderPath, "./passed"))) {
                   fs.mkdirSync(path.join(folderPath, "./passed"));
@@ -501,11 +527,11 @@ function checkFolderDbIntegrity(folderPath, folderChecksum) {
       return new Promise((resolve, reject) => {
             log.info("checkFolderDbIntegrity: Checking folder database integrity, path: " + folderPath);
 
-            var folderDbExist = fs.existsSync(path.join(folderPath, "./" + databaseName));
+            var folderDbExist = fs.existsSync(path.join(folderPath, "./appdata/" + databaseName));
 
             if (folderDbExist) {
 
-                  var databaseBuffer = fs.readFileSync(path.join(folderPath, "./" + databaseName));
+                  var databaseBuffer = fs.readFileSync(path.join(folderPath, "./appdata/" + databaseName));
                   var databaseChecksum = crypto.createHash("sha256");
                   databaseChecksum.update(databaseBuffer);
                   var hex = databaseChecksum.digest("hex");
@@ -530,7 +556,7 @@ function scanFolderImages(folderPath) {
 
       return new Promise((resolve, reject) => {
             log.info("scanFolderImages: initializing images scanning and verify integrity of database. Folder path: " + folderPath);
-            var databasePath = path.join(folderPath, "./" + databaseName);
+            var databasePath = path.join(folderPath, "./appdata/" + databaseName);
             var databaseBuffer, buffer;
 
             try {
@@ -568,15 +594,19 @@ function scanFolderImages(folderPath) {
                         fs.readdirSync(folderPath).forEach(file => {
                               statement.reset();
                               if (!folderIgnoreFilesName.includes(file)) {
-                                    statement = db.prepare("SELECT COUNT(_id) AS count FROM images WHERE name = '" + file + "';");
-                                    statement.step();
 
-                                    if (statement.getAsObject().count === 0) {
-                                          db.run("INSERT INTO images (name, path, status, defect_name, date_created) VALUES ('" + file + "', '" + path.join(folderPath, file) + "', " + imageStatus.pending + ", '', '" + getCurrentDateTime() + "')");
-                                          log.info("scanFolderImages: New image detected, inserted new image into folder database, image name: " + file);
-                                    } else {
-                                          log.info("scanFolderImages: Image exist in folder and folder database, ignore insert images into folder database, image name: " + file);
+                                    if (folderImagesFileTypes.includes(path.extname(file).toLowerCase())) {
+                                          statement = db.prepare("SELECT COUNT(_id) AS count FROM images WHERE name = '" + file + "';");
+                                          statement.step();
+
+                                          if (statement.getAsObject().count === 0) {
+                                                db.run("INSERT INTO images (name, path, status, defect_name, date_created) VALUES ('" + file + "', '" + path.join(folderPath, file) + "', " + imageStatus.pending + ", '', '" + getCurrentDateTime() + "')");
+                                                log.info("scanFolderImages: New image detected, inserted new image into folder database, image name: " + file);
+                                          } else {
+                                                log.info("scanFolderImages: Image exist in folder and folder database, ignore insert images into folder database, image name: " + file);
+                                          }
                                     }
+
                               }
                         });
 
@@ -601,7 +631,7 @@ function getAllImages(folderPath) {
 
       return new Promise((resolve, reject) => {
             log.info("getAllImages: getting all images from folder database, folder path: " + folderPath);
-            var databasePath = path.join(folderPath, "./" + databaseName);
+            var databasePath = path.join(folderPath, "./appdata/" + databaseName);
             var databaseBuffer;
 
             try {

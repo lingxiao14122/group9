@@ -61,6 +61,8 @@ export default {
         this.toast("Successful adding folder.");
       } else if(payload.result == "error"){
         this.toast("Failed adding folder info.", "error");
+      } else if(payload.result == "warn") {
+        this.toast("Failed adding folder info. Reason: " + payload.reason, "error");
       }
       this.overlayBlocking();
       window.ipc.send("GET_ALL_FOLDER", {});
