@@ -141,7 +141,7 @@ function scanFolderImages(folderPath) {
             try {
                   databaseBuffer = fs.readFileSync(databasePath);
 
-                  initSqlJs().then((SQL) => {
+                  initSqlJs().then(async (SQL) => {
                         const db = new SQL.Database(databaseBuffer);
                         var statement = db.prepare(selectAllImagesFolderDb);
 
@@ -194,9 +194,8 @@ function scanFolderImages(folderPath) {
                         logger.info("scanFolderImages: finish inserting new images info into folder database.");
                         statement.reset();
                         db.close();
-                        var databaseChecksum = crypto.createHash("sha256");
-                        databaseChecksum.update(buffer);
-                        resolve({ result: "success", checksum: databaseChecksum.digest("hex") });
+                        
+                        resolve({ result: "success" });
                   });
             } catch (error) {
                   logger.error("scanFolderImages: failed initializing images scanning and verify integrity of database. Folder path: " + folderPath + "\n" + error);

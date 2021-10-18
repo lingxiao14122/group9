@@ -334,6 +334,7 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
                   if (checkIntegrityResult.result === "success") {
                         var scanResult = await folderDatabase.scanFolderImages(getResult.item[0].path);
                         var updateResult = await folderDatabase.updateFolderDatabaseChecksum(getResult.item[0]._id, scanResult.checksum);
+                        var changeResult = await localDatabase.updateLocalDatabaseChecksum();
                         if (getResult.result === "success" && scanResult.result === "success") {
                               var imagesResult = await folderDatabase.getAllImages(getResult.item[0].path);
 
