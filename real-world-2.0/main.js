@@ -52,7 +52,7 @@ app.on('activate', function () {
 
 ipcMain.on("CHECK_LOCAL_DB_INTEGRITY", async (event, payload) => {
       logger.info("checkLocalDBIntegrityChannel: Checking local database integrity...");
-      
+
       var localDBExist = fs.existsSync(path.join(app.getAppPath(), "./" + database.databaseName));
       var localDBChecksumExist = fs.existsSync(path.join(app.getAppPath(), "./" + localDatabase.databaseChecksumName));
 
@@ -134,32 +134,32 @@ ipcMain.on("READ_FOLDER_PATH", async (event, payload) => {
                   event.reply("READ_FOLDER_PATH", { result: "canceled" });
             } else {
                   logger.info("readFolderAndImage: User selected folder path: " + result.filePaths);
-                  var fileBuffer;
-                  var databasePath = path.join(app.getAppPath(), database.databaseName);
+                  var databaseBuffer;
+                  var databasePath = path.join(app.getAppPath(), "./" + database.databaseName);
 
                   try {
-                        fileBuffer = fs.readFileSync(databasePath);
+                        databaseBuffer = fs.readFileSync(databasePath);
 
                         var checkResult = await folderDatabase.checkFolderDatabaseAndFolder(result.filePaths.toString());
 
                         if (checkResult.result === "success") {
-                              var insertResult = await localDatabase.insertLocalDatabaseFolder(databasePath, fileBuffer, process.platform == 'win32' ? path.win32.basename(result.filePaths.toString()) : path.posix.basename(result.filePaths.toString()), result.filePaths, checkResult.databaseChecksum);
+                              var insertResult = await localDatabase.insertLocalDatabaseFolder(databasePath, databaseBuffer, process.platform == 'win32' ? path.win32.basename(result.filePaths.toString()) : path.posix.basename(result.filePaths.toString()), result.filePaths, checkResult.databaseChecksum);
                               var changeResult = await localDatabase.updateLocalDatabaseChecksum();
 
-                              if(insertResult.result === "warn"){
+                              if (insertResult.result === "warn") {
                                     logger.warn("readFolderPathChannel: Folder already exist in local database, path: " + result.filePaths);
                                     event.reply("READ_FOLDER_PATH", { result: "warn", reason: insertResult.reason });
                               } else {
-                                    logger.info("readFolderPathChannel: Folder path saved: " + result.filePaths);
+                                    logger.info("readFolderPathChannel: Successful insert folder path into local database: " + result.filePaths);
                                     event.reply("READ_FOLDER_PATH", { result: "success" });
                               }
                         } else {
-                              logger.error("readFolderPathChannel: Error inserting folder data: \n" + result.reason);
+                              logger.error("readFolderPathChannel: Failed inserting folder path into local database: \n" + result.reason);
                               event.reply("READ_FOLDER_PATH", { result: "error", reason: result.reason });
                         }
 
                   } catch (error) {
-                        logger.error("readFolderPathChannel: Error inserting folder data: \n" + error);
+                        logger.error("readFolderPathChannel: Failed inserting folder path into local database: \n" + JSON.stringify(error));
                         event.reply("READ_FOLDER_PATH", { result: "error", reason: error });
                   }
 
@@ -170,16 +170,16 @@ ipcMain.on("READ_FOLDER_PATH", async (event, payload) => {
 
 ipcMain.on("GET_ALL_FOLDER", async (event, payload) => {
 
-      logger.info("getAllFolderChannel: Getting all folder from local database");
-      var fileBuffer;
-      var databasePath = path.join(app.getAppPath(), database.databaseName);
+      logger.info("getAllFolderChannel: Getting all folder from local database...");
+      var databaseBuffer;
+      var databasePath = path.join(app.getAppPath(), "./" + database.databaseName);
 
       try {
-            fileBuffer = fs.readFileSync(databasePath);
+            databaseBuffer = fs.readFileSync(databasePath);
 
             initSqlJs().then(async (SQL) => {
                   var result = [];
-                  const db = new SQL.Database(fileBuffer);
+                  const db = new SQL.Database(databaseBuffer);
 
                   const statement = db.prepare(localDatabase.selectAllFolderLocalDb);
 
@@ -190,12 +190,12 @@ ipcMain.on("GET_ALL_FOLDER", async (event, payload) => {
 
                   db.close();
 
-                  logger.info("getAllFolderChannel: Got all folder from local database");
+                  logger.info("getAllFolderChannel: Successfull get all folder from local database");
                   event.reply("GET_ALL_FOLDER", { result: "success", items: result });
             });
 
       } catch (error) {
-            logger.warn("getAllFolderChannel: Getting all folder from local database failed: \n" + error);
+            logger.error("getAllFolderChannel: Failed getting all folder from local database: \n" + error);
             event.reply("GET_ALL_FOLDER", { result: "error", reason: error });
       }
 
@@ -203,21 +203,118 @@ ipcMain.on("GET_ALL_FOLDER", async (event, payload) => {
 
 ipcMain.on("DELETE_FOLDER", async (event, payload) => {
 
-      logger.info("deleteFolderChannel: Deleting folder _id: " + payload._id);
-      var fileBuffer;
-      var databasePath = path.join(app.getAppPath(), database.databaseName);
+      if (payload._id === undefined || payload._id === null || payload._id === NaN) {
+            logger.error("deleteFolderChannel: Failed delete folder path in local database, reason: Unknown folder id.");
+            event.reply("DELETE_FOLDER", { result: "error", code: 1, reason: "Unknown folder id" });
+      } else {
+            logger.info("deleteFolderChannel: Deleting folder path in local database, id: " + payload._id);
+            var databaseBuffer;
+            var databasePath = path.join(app.getAppPath(), database.databaseName);
+
+            try {
+                  databaseBuffer = fs.readFileSync(databasePath);
+
+                  var deleteResult = await localDatabase.deleteLocalDatabaseFolder(databasePath, databaseBuffer, payload._id);
+                  var changeResult = await localDatabase.updateLocalDatabaseChecksum();
+
+                  logger.info("deleteFolderChannel: Successful delete folder path in local database, id: " + payload._id);
+                  event.reply("DELETE_FOLDER", { result: "success" });
+            } catch (error) {
+                  logger.error("deleteFolderChannel: Failed delete folder in local database, id: " + payload._id + "\n" + JSON.stringify(error));
+                  event.reply("DELETE_FOLDER", { result: "error", code: 2, reason: error });
+            }
+      }
+
+});
+
+ipcMain.on("INSERT_NEW_DEFECT", async (event, payload) => {
+
+      if (payload.defect_name === undefined || payload.defect_name === null) {
+            logger.error("insertNewDefectChannel: Insert new defect category failed. Reason: defect name are undefined.");
+            event.reply("INSERT_NEW_DEFECT", { result: "error", code: 1, reason: "Defect name are undefined." });
+      } else {
+            logger.info("insertNewDefectChannel: Inserting new defect category into local database...");
+            var databaseBuffer;
+            var databasePath = path.join(app.getAppPath(), "./" + database.databaseName);
+
+            try {
+                  databaseBuffer = fs.readFileSync(databasePath);
+
+                  var insertResult = await localDatabase.insertLocalDatabaseDefect(databasePath, databaseBuffer, payload.defect_name);
+                  var changeResult = await localDatabase.updateLocalDatabaseChecksum();
+
+                  if (insertResult.result === "warn") {
+                        logger.warn("insertNewDefectChannel: Defect category already exist in local database, name: " + payload.defect_name);
+                        event.reply("INSERT_NEW_DEFECT", { result: "warn", reason: insertResult.reason });
+                  } else {
+                        logger.info("insertNewDefectChannel: Successful insert new defect category into local database. Name: " + payload.defect_name);
+                        event.reply("INSERT_NEW_DEFECT", { result: "success", });
+                  }
+            } catch (error) {
+                  logger.error("insertNewDefectChannel: Failed inserting new defect category into local database: \n" + JSON.stringify(error));
+                  event.reply("INSERT_NEW_DEFECT", { result: "error", reason: error });
+            }
+
+      }
+
+});
+
+ipcMain.on("GET_ALL_DEFECT", async (event, payload) => {
+
+      logger.info("getAllDefectChannel: Getting defect categories from local database...");
+      var databaseBuffer;
+      var databasePath = path.join(app.getAppPath(), "./" + database.databaseName);
 
       try {
-            fileBuffer = fs.readFileSync(databasePath);
+            databaseBuffer = fs.readFileSync(databasePath);
 
-            var deleteResult = await localDatabase.deleteLocalDatabaseFolder(databasePath, fileBuffer, payload._id);
-            var changeResult = await localDatabase.updateLocalDatabaseChecksum();
+            initSqlJs().then((SQL) => {
+                  var result = [];
+                  const db = new SQL.Database(databaseBuffer);
 
-            logger.info("deleteFolderChannel: Deleting folder successful");
-            event.reply("DELETE_FOLDER", { result: "success" });
+                  const statement = db.prepare(localDatabase.selectAllDefectLocalDb);
+
+                  while (statement.step()) {
+                        var row = statement.getAsObject();
+                        result.push(row);
+                  }
+
+                  db.close();
+
+                  logger.info("getAllDefectChannel: Successful get all defect categories from local database");
+                  event.reply("GET_ALL_DEFECT", { result: "success", items: result })
+            });
+
       } catch (error) {
-            logger.error("deleteFolderChannel: Delete folder failed: \n" + error);
-            event.reply("DELETE_FOLDER", { result: "error", reason: error });
+            logger.error("getAllDefectChannel: Failed getting defect categories from local database: \n" + error);
+            event.reply("GET_ALL_DEFECT", { result: "error", reason: error });
+      }
+
+});
+
+ipcMain.on("DELETE_DEFECT", async (event, payload) => {
+
+      if(payload._id === undefined || payload._id === null || payload._id === NaN){
+            logger.error("deleteDefectChannel: Failed delete defect category in local database, reason: Unknown defect category id.");
+            event.reply("DELETE_DEFECT", { result: "error", code: 1, reason: "Unknown defect category id."});
+      } else {
+            logger.info("deleteDefectChannel: Deleting defect category in local database, id: " + payload._id);
+            var databaseBuffer;
+            var databasePath = path.join(app.getAppPath(), database.databaseName);
+
+            try {
+                  databaseBuffer = fs.readFileSync(databasePath);
+
+                  var deleteResult = localDatabase.deleteLocalDatabaseDefect(databasePath, databaseBuffer, payload._id);
+                  var changeResult = await localDatabase.updateLocalDatabaseChecksum();
+
+                  logger.info("deleteDefectChannel: Successful delete defect category in local database, id: " + payload._id);
+                  event.reply("DELETE_DEFECT", { result: "success" });
+            } catch (error) {
+                  logger.error("deleteDefectChannel: Failed delete defect category in local database, id: " + payload._id + "\n" + JSON.stringify(error));
+                  event.reply("DELETE_FOLDER", { result: "error", code: 2, reason: error })
+            }
+
       }
 
 });

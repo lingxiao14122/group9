@@ -4,14 +4,28 @@
       <div class="d-flex bg-header pt-5 pb-4">
         <div class="flex-column ml-5 d-flex justify-content-start">
           <h1>Folders</h1>
-          <button type="button" class="btn btn-primary btn-lg mt-2" @click="click_new_folder">New Folder</button>
+          <button
+            type="button"
+            class="btn btn-primary btn-lg mt-2"
+            @click="click_new_folder"
+          >
+            New Folder
+          </button>
         </div>
       </div>
     </div>
     <div class="apptable">
-      <b-table striped hover :items="items" :fields="fields" @row-clicked="clickHandler">
-        <template #cell(action) = "row">
-          <b-button size="sm" @click="click_detail_btn(row.index)"> Delete </b-button>
+      <b-table
+        striped
+        hover
+        :items="items"
+        :fields="fields"
+        @row-clicked="clickHandler"
+      >
+        <template #cell(action)="row">
+          <b-button size="sm" @click="click_detail_btn(row.index)">
+            Delete
+          </b-button>
         </template>
       </b-table>
     </div>
@@ -23,11 +37,11 @@ export default {
   data() {
     return {
       fields: [
-        {key: "name", label: "Folder Name"},
-        {key: 'path', label: "Folder Path"},
-        {key: 'date_created', label: "Date Created"},
-        "action"
-        ],
+        { key: "name", label: "Folder Name" },
+        { key: "path", label: "Folder Path" },
+        { key: "date_created", label: "Date Created" },
+        "action",
+      ],
       items: [],
       showLoading: false,
     };
@@ -38,11 +52,11 @@ export default {
       window.ipc.send("READ_FOLDER_PATH", {});
     },
     click_detail_btn(index) {
-      if(confirm("Are you sure want to delete this folder?")){
-        window.ipc.send("DELETE_FOLDER", {_id: this.items[index]._id});
+      if (confirm("Are you sure want to delete this folder?")) {
+        window.ipc.send("DELETE_FOLDER", { _id: this.items[index]._id });
       }
     },
-    clickHandler(tablerow){
+    clickHandler(tablerow) {
       this.$router.push({
         name: "Files",
         params: {
@@ -55,33 +69,40 @@ export default {
       this.$store.commit("overlayBlockingAppSwitch", this.showLoading);
     },
   },
-  mounted(){
+  mounted() {
     window.ipc.on("READ_FOLDER_PATH", (payload) => {
-      if(payload.result == "success"){
+      if (payload.result == "success") {
         this.toast("Successful adding folder.");
-      } else if(payload.result == "error"){
+      } else if (payload.result == "error") {
         this.toast("Failed adding folder info.", "error");
-      } else if(payload.result == "warn") {
-        this.toast("Failed adding folder info. Reason: " + payload.reason, "error");
+      } else if (payload.result == "warn") {
+        this.toast(
+          "Failed adding folder info. Reason: " + payload.reason,
+          "error"
+        );
       }
       this.overlayBlocking();
       window.ipc.send("GET_ALL_FOLDER", {});
     });
 
     window.ipc.on("GET_ALL_FOLDER", (payload) => {
-      if(payload.result == "success"){
+      if (payload.result == "success") {
         this.items = payload.items;
-      } else if(payload.result == "error"){
+      } else if (payload.result == "error") {
         this.toast("Failed getting all folder info.", "error");
         this.items = [];
       }
     });
 
     window.ipc.on("DELETE_FOLDER", (payload) => {
-      if(payload.result == "success"){
+      if (payload.result == "success") {
         this.toast("Successful deleting folder.");
-      } else if(payload.result == "error") {
-        this.toast("Failed deleting folder.", "error");
+      } else if (payload.result == "error") {
+        if (payload.code == 1) {
+          this.toast("Failed deleting folder. Reason: " + payload.reason, "error");
+        } else {
+          this.toast("Failed deleting folder.", "error");
+        }
       }
       window.ipc.send("GET_ALL_FOLDER", {});
     });
@@ -89,9 +110,9 @@ export default {
     window.ipc.send("GET_ALL_FOLDER", {});
   },
   beforeDestroy() {
-    let activeChannel = ['READ_FOLDER_PATH', 'GET_ALL_FOLDER', 'DELETE_FOLDER']
-    window.ipc.removeAllListeners(activeChannel)
-  }
+    let activeChannel = ["READ_FOLDER_PATH", "GET_ALL_FOLDER", "DELETE_FOLDER"];
+    window.ipc.removeAllListeners(activeChannel);
+  },
 };
 </script>
 

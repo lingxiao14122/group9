@@ -14,6 +14,10 @@ const selectAllFolderLocalDb = " \
                         SELECT * FROM folder_location WHERE soft_delete = 0; \
                         ";
 
+const selectAllDefectLocalDb = " \
+                        SELECT * FROM defect_category WHERE soft_delete = 0; \
+                        ";
+
 function getCurrentDateTime() {
       var currentDate = new Date();
 
@@ -97,7 +101,7 @@ function insertLocalDatabaseDefect(databasePath, databaseBuffer, defectName){
 function deleteLocalDatabaseFolder(databasePath, databaseBuffer, folderId) {
 
       return new Promise((resolve, reject) => {
-            logger.info("deleteLocalDatabaseFolder: Deleting local database with folder path: " + folderId);
+            logger.info("deleteLocalDatabaseFolder: Deleting folder path in local database, id: " + folderId);
             var buffer;
 
             initSqlJs().then((SQL) => {
@@ -111,7 +115,30 @@ function deleteLocalDatabaseFolder(databasePath, databaseBuffer, folderId) {
                   db.close();
             });
 
-            logger.info("deleteLocalDatabaseFolder: Deleted local database with folder path: " + folderId);
+            logger.info("deleteLocalDatabaseFolder: Successful delete folder path in local database, id: " + folderId);
+            resolve({ result: "success" });
+      });
+
+}
+
+function deleteLocalDatabaseDefect(databasePath, databaseBuffer, defectId){
+
+      return new Promise((resolve, reject) => {
+            logger.info("deleteLocalDatabaseDefect: Deleting defect category in local database, id: " + defectId);
+            var buffer;
+
+            initSqlJs().then((SQL) => {
+                  const db = new SQL.Database(databaseBuffer);
+
+                  db.run("UPDATE defect_category SET soft_delete = 1 WHERE _id = " + defectId + ";");
+
+                  buffer = new Buffer(db.export());
+                  fs.writeFileSync(databasePath, buffer);
+
+                  db.close();
+            });
+
+            logger.info("deleteLocalDatabaseDefect: Successful delete defect category in local database, id: " + defectId);
             resolve({ result: "success" });
       });
 
@@ -185,9 +212,11 @@ function getFolderInfoFromLocalDB(folder_id) {
 module.exports = localDatabase = {
       databaseChecksumName: databaseChecksumName,
       selectAllFolderLocalDb: selectAllFolderLocalDb,
+      selectAllDefectLocalDb: selectAllDefectLocalDb,
       insertLocalDatabaseFolder,
       insertLocalDatabaseDefect,
       deleteLocalDatabaseFolder,
+      deleteLocalDatabaseDefect,
       updateLocalDatabaseChecksum,
       getFolderInfoFromLocalDB,
 }
