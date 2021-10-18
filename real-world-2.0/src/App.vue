@@ -23,7 +23,6 @@ export default {
   },
   mounted() {
     window.ipc.on("CHECK_LOCAL_DB_INTEGRITY", (payload) => {
-      console.log(payload);
       if(payload.result == "error"){
         if(payload.code == 1){
           this.toast(payload.reason + "\nSolution: " + payload.solution, "error");
