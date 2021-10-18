@@ -88,6 +88,10 @@ export default {
 
     window.ipc.send("GET_ALL_FOLDER", {});
   },
+  beforeDestroy() {
+    let activeChannel = ['READ_FOLDER_PATH', 'GET_ALL_FOLDER', 'DELETE_FOLDER']
+    window.ipc.removeAllListeners(activeChannel)
+  }
 };
 </script>
 
