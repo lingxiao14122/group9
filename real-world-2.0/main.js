@@ -83,19 +83,6 @@ app.on('ready', createWindow)
 
 app.on('window-all-closed', function () {
       log.info("App quitting...");
-      log.info("Saving database checksum to " + databaseChecksumName + "...");
-
-      var databaseBuffer = fs.readFileSync(path.join(app.getAppPath(), "./" + databaseName));
-      var databaseChecksum = crypto.createHash("sha256");
-      databaseChecksum.update(databaseBuffer);
-
-      try {
-            fs.writeFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), databaseChecksum.digest("hex"));
-            log.info("Saved database checksum to " + databaseChecksumName);
-      } catch (error) {
-            log.error("Failed saving database checksum to " + databaseChecksumName + ": " + error);
-      }
-
       if (process.platform !== 'darwin') app.quit()
 })
 
@@ -197,6 +184,7 @@ ipcMain.on("READ_FOLDER_PATH", async (event, payload) => {
 
                         if (checkResult.result === "success") {
                               var insertResult = await insertLocalDatabaseFolder(databasePath, fileBuffer, process.platform == 'win32' ? path.win32.basename(result.filePaths.toString()) : path.posix.basename(result.filePaths.toString()), result.filePaths, checkResult.databaseChecksum);
+                              var changeResult = await updateLocalDatabaseChecksum();
 
                               if(insertResult.result === "warn"){
                                     log.warn("readFolderPathChannel: Folder already exist in local database, path: " + result.filePaths);
@@ -263,6 +251,7 @@ ipcMain.on("DELETE_FOLDER", async (event, payload) => {
             fileBuffer = fs.readFileSync(databasePath);
 
             var deleteResult = await deleteLocalDatabaseFolder(databasePath, fileBuffer, payload._id);
+            var changeResult = await updateLocalDatabaseChecksum();
 
             log.info("deleteFolderChannel: Deleting folder successful");
             event.reply("DELETE_FOLDER", { result: "success" });
@@ -428,6 +417,36 @@ function deleteLocalDatabaseFolder(databasePath, databaseBuffer, folderId) {
 
             log.info("deleteLocalDatabaseFolder: Deleted local database with folder path: " + folderId);
             resolve({ result: "success" });
+      });
+
+}
+
+function updateLocalDatabaseChecksum(){
+
+      return new Promise((resolve, reject) => {
+
+            log.info("updateLocalDatabaseChecksum: Changing new checksum value in " + databaseChecksumName);
+            var databasePath = path.join(app.getAppPath(), "./" + databaseName);
+            
+            if(fs.existsSync(databasePath)){
+                  var databaseBuffer = fs.readFileSync(databasePath);
+                  var databaseChecksum = crypto.createHash("sha256");
+                  databaseChecksum.update(databaseBuffer);
+
+                  try {
+                        fs.writeFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), databaseChecksum.digest("hex"));
+                        log.info("updateLocalDatabaseChecksum: Success change new checksum value in " + databaseChecksumName);
+                        resolve({result: "success"});
+                  } catch (error) {
+                        log.error("updateLocalDatabaseChecksum: Failed change new checksum value in " + databaseChecksumName + "\n" + JSON.stringify(error));
+                        reject({result: "error", reason: error});
+                  }
+
+            } else {
+                  log.error("updateLocalDatabaseChecksum: Failed change new checksum value in " + databaseChecksumName + ". Reason: Database not exist.");
+                  reject({result: "error", reason: "Database not exist."});
+            }
+
       });
 
 }
