@@ -77,9 +77,8 @@ function createDatabase(databaseType, databasePath) {
 
 }
 
-exports.databaseName = databaseName;
-
 module.exports = databaseUtils = {
+      databaseName: databaseName,
       renameDatabase,
       createDatabase
 }

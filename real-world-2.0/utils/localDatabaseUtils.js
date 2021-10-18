@@ -47,8 +47,8 @@ function insertLocalDatabaseFolder(databasePath, databaseBuffer, folderName, fol
                         buffer = new Buffer(db.export());
                         fs.writeFileSync(databasePath, buffer);
 
+                        logger.info("insertLocalDatabaseFolder: Successfull insert local database with folder path: " + folderPath);
                         resolve({ result: "success" });
-                        logger.info("insertLocalDatabaseFolder: Inserted local database with folder path: " + folderPath);
                   } else {
                         logger.warn("insertLocalDatabaseFolder: Folder already exist in local database, path: " + folderPath);
                         resolve({result: "warn", reason: "Folder already exist in local database."});
@@ -57,6 +57,39 @@ function insertLocalDatabaseFolder(databasePath, databaseBuffer, folderName, fol
                   db.close();
             });
 
+      });
+
+}
+
+function insertLocalDatabaseDefect(databasePath, databaseBuffer, defectName){
+
+      return new Promise((resolve, reject) => {
+            logger.info("insertLocalDatabaseDefect: inserting local database with defect name: " + defectName);
+            var buffer;
+            var currentDate = getCurrentDateTime();
+
+            initSqlJs().then((SQL) => {
+                  const db = new SQL.Database(databaseBuffer);
+
+                  const statement = db.prepare("SELECT COUNT(_id) AS count FROM defect_category WHERE name = '" + defectName + "' AND soft_delete = 0;");
+                  statement.step();
+
+                  if(statement.getAsObject().count === 0){
+                        db.run("INSERT INTO defect_category (name, date_created, soft_delete) \
+                              VALUES ('" + defectName + "', '" + currentDate + "', 0);");
+
+                        buffer = new Buffer(db.export());
+                        fs.writeFileSync(databasePath, buffer);
+
+                        logger.info("insertLocalDatabaseDefect: Successful insert local database with defect name: " + defectName);
+                        resolve({ result: "success" });
+                  } else {
+                        logger.warn("insertLocalDatabaseDefect: Defect name already exist in local database, name: " + defectName);
+                        resolve({ result: "warn", reason: "Defect category name already exist in local database." });
+                  }
+
+                  db.close();
+            });
       });
 
 }
@@ -149,11 +182,11 @@ function getFolderInfoFromLocalDB(folder_id) {
 
 }
 
-exports.databaseChecksumName = databaseChecksumName;
-exports.selectAllFolderLocalDb = selectAllFolderLocalDb;
-
 module.exports = localDatabase = {
+      databaseChecksumName: databaseChecksumName,
+      selectAllFolderLocalDb: selectAllFolderLocalDb,
       insertLocalDatabaseFolder,
+      insertLocalDatabaseDefect,
       deleteLocalDatabaseFolder,
       updateLocalDatabaseChecksum,
       getFolderInfoFromLocalDB,
