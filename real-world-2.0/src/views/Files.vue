@@ -128,9 +128,20 @@ export default {
     clickHandler(tablerow, index) {
       alert("row clicked index: " + index);
       console.log(tablerow);
+
+      if(this.tableIsDisplaying === this.tabletab.all){
+        this.$router.push({
+          name: "Segregation",
+          params: {
+            folder_id: this.folder_id,
+            index: index,
+            items: this.allItems,
+          }
+        });
+      }
+
     },
     tabClicked: function (tabname) {
-      console.log(tabname);
       this.tableIsDisplaying = tabname;
       this.switchTable();
     },

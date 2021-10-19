@@ -41,7 +41,8 @@ const routes = [
   {
     path: '/segregation',
     name: 'Segregation',
-    component: Segregation
+    component: Segregation,
+    props: true
   },
 ]
 
