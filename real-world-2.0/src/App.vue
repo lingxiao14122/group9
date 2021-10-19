@@ -4,7 +4,7 @@
       <div id="nav" class="sidebar d-flex flex-column">
         <router-link to="/home">Home</router-link>
         <router-link to="/about">About</router-link>
-        <router-link to="/">Folders</router-link>
+        <router-link to="/folders">Folders</router-link>
         <router-link to="/files">Files</router-link>
         <router-link to="/defects">Defects</router-link>
         <router-link to="/segregation">Segregation</router-link>
@@ -23,13 +23,16 @@ export default {
   },
   mounted() {
     window.ipc.on("CHECK_LOCAL_DB_INTEGRITY", (payload) => {
-      if (payload.result == "error") {
-        if (payload.code == 1) {
+      if(payload.result == "error"){
+        if(payload.code == 1){
           this.toast(payload.reason + "\nSolution: " + payload.solution, "error");
         } else {
           this.toast("Failed checking local database integrity.");
         }
       }
+      this.$router.push({
+          name: "Folders",
+        });
     });
 
     window.ipc.send("CHECK_LOCAL_DB_INTEGRITY", {});
@@ -71,7 +74,7 @@ export default {
   background: #dcecfa;
   width: fit-content;
   font-size: 1.4rem;
-  overflow: visible;
+  overflow:visible;
 }
 
 #appbody {
