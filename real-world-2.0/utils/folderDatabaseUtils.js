@@ -194,8 +194,11 @@ function scanFolderImages(folderPath) {
                         logger.info("scanFolderImages: finish inserting new images info into folder database.");
                         statement.reset();
                         db.close();
+
+                        var databaseChecksum = crypto.createHash("sha256");
+                        databaseChecksum.update(buffer);
                         
-                        resolve({ result: "success" });
+                        resolve({ result: "success", checksum: databaseChecksum.digest("hex") });
                   });
             } catch (error) {
                   logger.error("scanFolderImages: failed initializing images scanning and verify integrity of database. Folder path: " + folderPath + "\n" + error);
