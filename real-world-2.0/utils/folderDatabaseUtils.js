@@ -29,7 +29,7 @@ const folderImagesFileTypes = [
 
 const imageStatus = {
       pending: 0,
-      pass: 1,
+      passed: 1,
       failed: 2,
 }
 
