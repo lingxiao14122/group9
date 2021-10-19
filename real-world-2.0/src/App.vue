@@ -2,7 +2,7 @@
   <b-overlay :show="overlayBlocking">
     <div id="app" class="d-flex">
       <div id="nav" class="sidebar d-flex flex-column">
-        <router-link to="/">Home</router-link>
+        <router-link to="/home">Home</router-link>
         <router-link to="/about">About</router-link>
         <router-link to="/folders">Folders</router-link>
         <router-link to="/files">Files</router-link>
@@ -29,8 +29,10 @@ export default {
         } else {
           this.toast("Failed checking local database integrity.");
         }
-        
       }
+      this.$router.push({
+          name: "Folders",
+        });
     });
 
     window.ipc.send("CHECK_LOCAL_DB_INTEGRITY", {});
