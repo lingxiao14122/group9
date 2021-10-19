@@ -23,7 +23,7 @@ const routes = [
     component: () => import(/* webpackChunkName: "about" */ '../views/About.vue')
   },
   {
-    path: '/folders',
+    path: '/',
     name: 'Folders',
     component: Folders
   },
