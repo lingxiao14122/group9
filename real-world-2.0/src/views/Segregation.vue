@@ -1,6 +1,7 @@
 <template>
   <div class="appsegregation">
     <div class="container">
+      <b-button class="btn" @click="returnToFiles">return</b-button>
       <h2>1/4</h2>
       <h2>All: 4 Pending: 4, Pass: 0, Failed: 0</h2>
       <div class="d-flex flex-column">
@@ -68,6 +69,9 @@ export default {
       console.log(completeImagePath);
       this.currentImage = completeImagePath;
     },
+    returnToFiles() {
+    this.$router.push({name: "Files"})
+    }
   },
   mounted() {
     this.loadNextImage(0);
