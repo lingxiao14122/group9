@@ -9,6 +9,7 @@ const validChannels = [
       "GET_ALL_DEFECT",
       "DELETE_DEFECT",
       "GET_IMAGES",
+      "CHECK_IMAGE_AVAILABILITY",
       "TEST"];
 
 contextBridge.exposeInMainWorld(

@@ -369,6 +369,25 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
 
 });
 
+ipcMain.on("CHECK_IMAGE_AVAILABILITY", (event, payload) => {
+
+      if(payload.iamge === null || payload.image === undefined || payload.image === NaN){
+            logger.error("checkImageAvailabilityChannel: Failed checking image availability. Reason: Unknown Image info.");
+            event.reply("CHECK_IMAGE_AVAILABILITY", { result: "error", code: 1, reason: "Unknown Image info." });
+      } else {
+            logger.info("checkImageAvailabilityChannel: Checking image availability, image path: " + payload.image.path);
+
+            if(fs.existsSync(payload.image.path)){
+                  logger.info("checkImageAvailabilityChannel: Successful check image availability, image path: " + payload.image.path);
+                  event.reply("CHECK_IMAGE_AVAILABILITY", { result: "success", exist: true, direction: payload.direction });
+            } else {
+                  logger.warn("checkImageAvailabilityChannel: Image are not exist in the folder path, image path: " + payload.image.path);
+                  event.reply("CHECK_IMAGE_AVAILABILITY", { result: "warn", exist: false, direction: payload.direction });
+            }
+      }
+
+});
+
 ipcMain.on("TEST", (event, payload) => {
 
 });

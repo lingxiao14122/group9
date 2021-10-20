@@ -255,8 +255,8 @@ export default {
     window.ipc.send("GET_IMAGES", { folder_id: this.folder_id });
   },
   beforeDestroy() {
-    let activeChannel = ['GET_IMAGES']
-    window.ipc.removeAllListeners(activeChannel)
+    let activeChannel = ['GET_IMAGES'];
+    window.ipc.removeAllListeners(activeChannel);
   }
 };
 </script>
