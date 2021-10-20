@@ -16,8 +16,7 @@
         <div class="infobar-below d-flex justify-content-between">
           <h5>Status: Pending</h5>
           <h5>
-            All: {{ items.length }} Pending: {{ count.pending }}, Pass:
-            {{ count.passed }}, Failed: {{ count.failed }}
+            All: {{ items.length }} Pending: {{ count.pending }}, Pass: {{ count.passed }}, Failed: {{ count.failed }}
           </h5>
         </div>
 
@@ -28,19 +27,63 @@
 
       <!-- Info bar end -->
 
+      <!-- Image start -->
       <div class="d-flex flex-column">
-        <!-- Image background -->
         <div class="d-flex justify-content-center bg-custom">
           <div class="image-wrapper">
-            <b-img
-              :src="currentImage"
-              style="max-height: 65vh; width: 100%"
-            ></b-img>
+            <b-img :src="currentImage" class="c-image1" style="filter: brightness(0.5)"></b-img>
           </div>
         </div>
       </div>
+      <!-- Image end -->
+
+      <!-- Btn group start -->
+      <div class="button-group mt-2 mx-5 d-flex align-self-end">
+        <div>
+          <b-button
+            class="m-2 btn-seg-custom"
+            variant="primary"
+            @click="checkImageAvailablity(-1)"
+            :disabled="prevBtnIsDisabled"
+          >
+            <b-icon-arrow-left-circle></b-icon-arrow-left-circle>
+          </b-button>
+        </div>
+        <div class="flex-grow-1">
+          <b-button class="m-2 btn-seg-custom" variant="primary" @click="checkImageAvailablity(1)">PASS</b-button>
+          <b-button class="m-2 btn-seg-custom" variant="danger" @click="showModal = true">FAIL</b-button>
+        </div>
+        <div>
+          <b-button
+            class="m-2 btn-seg-custom"
+            variant="primary"
+            @click="checkImageAvailablity(1)"
+            :disabled="nextBtnIsDisabled"
+          >
+            <b-icon-arrow-right-circle></b-icon-arrow-right-circle>
+          </b-button>
+        </div>
+      </div>
     </div>
-    <div class="flex-grow-1 d-flex align-items-end">
+    <!-- Btn group end -->
+
+    <!-- Modal form start -->
+    <div class="appmodal">
+      <b-modal v-model="showModal" title="Choose Defect" @ok="defectModalOk">
+        <b-form-group v-slot="{ ariaDescribedby }">
+          <b-form-checkbox-group
+            v-model="defectSelected"
+            :options="defectOptions"
+            :aria-describedby="ariaDescribedby"
+            stacked
+            size="lg"
+          ></b-form-checkbox-group>
+        </b-form-group>
+      </b-modal>
+    </div>
+    <!-- Modal form end -->
+
+    <!-- <div class="flex-grow-1 d-flex align-items-end">
       <div class="container mb-3 mx-5">
         <div class="button-group mt-2 d-flex align-self-end">
           <div>
@@ -54,15 +97,8 @@
             </b-button>
           </div>
           <div class="flex-grow-1">
-            <b-button
-              class="m-2 btn-seg-custom"
-              variant="primary"
-              @click="checkImageAvailablity(1)"
-              >PASS</b-button
-            >
-            <b-button class="m-2 btn-seg-custom" variant="danger"
-              >FAIL</b-button
-            >
+            <b-button class="m-2 btn-seg-custom" variant="primary" @click="checkImageAvailablity(1)">PASS</b-button>
+            <b-button class="m-2 btn-seg-custom" variant="danger">FAIL</b-button>
           </div>
           <div>
             <b-button
@@ -76,7 +112,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -105,8 +141,18 @@ export default {
         passed: 0,
         failed: 0,
       },
+      // Button state
       prevBtnIsDisabled: false,
       nextBtnIsDisabled: false,
+      // Defect Modal state
+      showModal: false,
+      defectSelected: [],
+      defectOptions: [
+        { text: "Orange", value: "orange" },
+        { text: "Apple", value: "apple" },
+        { text: "Pineapple", value: "pineapple" },
+        { text: "Grape", value: "grape" },
+      ],
       // pathToFolder: "C:\\Users\\lingx\\Desktop\\DeepPCB\\PCBData\\group00041\\00041",
       // //   https://github.com/tangsanli5201/DeepPCB
       // imageCollection: [
@@ -119,6 +165,12 @@ export default {
     };
   },
   methods: {
+    defectModalOk() {
+      // when ok button on modal is clicked
+    },
+    processDefectCategory() {
+      // implement defect category submission here
+    },
     checkBtnDisable() {
       if (this.items.length === 1) {
         this.prevBtnIsDisabled = true;
@@ -145,10 +197,7 @@ export default {
     loadNextImage(direction) {
       if (this.currentImageIndex === 0 && direction === -1) {
         this.toast("No image at front.", "error");
-      } else if (
-        this.currentImageIndex === this.items.length - 1 &&
-        direction === 1
-      ) {
+      } else if (this.currentImageIndex === this.items.length - 1 && direction === 1) {
         this.toast("No image at end.", "error");
       } else {
         //direction 0 no move, direction 1 forward, direction -1 previous
@@ -201,25 +250,16 @@ export default {
       console.log(payload);
       if (payload.result == "error") {
         if (payload.code == 1) {
-          this.toast(
-            "Failed getting image from the folder. Reason: " + payload.reason,
-            "error"
-          );
+          this.toast("Failed getting image from the folder. Reason: " + payload.reason, "error");
         } else {
           this.toast("Failed getting image from the folder.", "error");
         }
       } else {
         if (payload.result == "warn") {
           if (!payload.exist) {
-            this.toast(
-              "Failed getting image from the folder. Reason: Image are not exist in the folder.",
-              "error"
-            );
+            this.toast("Failed getting image from the folder. Reason: Image are not exist in the folder.", "error");
           } else {
-            this.toast(
-              "Failed getting image from the folder.",
-              "error"
-            );
+            this.toast("Failed getting image from the folder.", "error");
           }
         }
         this.loadNextImage(payload.direction);
@@ -268,5 +308,67 @@ export default {
   width: auto;
   height: auto;
   margin: auto;
+}
+
+.image-wrapper {
+  min-height: calc(100vh - 270px);
+}
+
+.c-image1 {
+  max-height: calc(100vh - 270px);
+}
+
+.c-image {
+  max-height: 100px;
+  min-height: 100px;
+}
+
+@media (min-height: 400px) {
+  .c-image {
+    max-height: 100px;
+    min-height: 100px;
+  }
+}
+@media (min-height: 450px) {
+  .c-image {
+    max-height: 200px;
+    min-height: 200px;
+  }
+}
+@media (min-height: 500px) {
+  .c-image {
+    max-height: 250px;
+    min-height: 250px;
+  }
+}
+@media (min-height: 550px) {
+  .c-image {
+    max-height: 300px;
+    min-height: 300px;
+  }
+}
+@media (min-height: 600px) {
+  .c-image {
+    max-height: 350px;
+    min-height: 350px;
+  }
+}
+@media (min-height: 650px) {
+  .c-image {
+    max-height: 400px;
+    min-height: 400px;
+  }
+}
+@media (min-height: 700px) {
+  .c-image {
+    max-height: 450px;
+    min-height: 450px;
+  }
+}
+@media (min-height: 760px) {
+  .c-image {
+    max-height: 500px;
+    min-height: 500px;
+  }
 }
 </style>
