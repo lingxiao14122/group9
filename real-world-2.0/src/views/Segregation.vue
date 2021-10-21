@@ -51,7 +51,7 @@
         </div>
         <div class="flex-grow-1">
           <b-button class="m-2 btn-seg-custom" variant="primary" @click="checkImageAvailablity(1)">PASS</b-button>
-          <b-button class="m-2 btn-seg-custom" variant="danger" @click="showModal = true">FAIL</b-button>
+          <b-button class="m-2 btn-seg-custom" variant="danger" @click="showingModel()">FAIL</b-button>
         </div>
         <div>
           <b-button
@@ -71,6 +71,7 @@
     <div class="appmodal">
       <b-modal v-model="showModal" title="Choose Defect" @ok="defectModalOk">
         <b-form-group v-slot="{ ariaDescribedby }">
+          <h6 v-if="isDefectNotEmpty">Defect Category are empty.</h6>
           <b-form-checkbox-group
             v-model="defectSelected"
             :options="defectOptions"
@@ -134,6 +135,7 @@ export default {
   },
   data() {
     return {
+      brokenImage: require("../assets/broken_image.png"),
       currentImage: null,
       currentImageIndex: 0,
       count: {
@@ -146,13 +148,16 @@ export default {
       nextBtnIsDisabled: false,
       // Defect Modal state
       showModal: false,
+      isDefectNotEmpty: false,
+      //example of defectOptions
+      // [
+      //   { text: "Orange", value: "orange" },
+      //   { text: "Apple", value: "apple" },
+      //   { text: "Pineapple", value: "pineapple" },
+      //   { text: "Grape", value: "grape" },
+      // ]
+      defectOptions: [],
       defectSelected: [],
-      defectOptions: [
-        { text: "Orange", value: "orange" },
-        { text: "Apple", value: "apple" },
-        { text: "Pineapple", value: "pineapple" },
-        { text: "Grape", value: "grape" },
-      ],
       // pathToFolder: "C:\\Users\\lingx\\Desktop\\DeepPCB\\PCBData\\group00041\\00041",
       // //   https://github.com/tangsanli5201/DeepPCB
       // imageCollection: [
@@ -165,12 +170,6 @@ export default {
     };
   },
   methods: {
-    defectModalOk() {
-      // when ok button on modal is clicked
-    },
-    processDefectCategory() {
-      // implement defect category submission here
-    },
     checkBtnDisable() {
       if (this.items.length === 1) {
         this.prevBtnIsDisabled = true;
@@ -194,7 +193,7 @@ export default {
       });
     },
     //purpose of this function is just to modify this.currentImage state only
-    loadNextImage(direction) {
+    loadNextImage(iamgeExist, direction) {
       if (this.currentImageIndex === 0 && direction === -1) {
         this.toast("No image at front.", "error");
       } else if (this.currentImageIndex === this.items.length - 1 && direction === 1) {
@@ -204,7 +203,12 @@ export default {
         this.currentImageIndex = this.currentImageIndex + direction;
         console.log("at index : " + this.currentImageIndex);
 
-        this.currentImage = this.items[this.currentImageIndex].path;
+        if(iamgeExist){
+          this.currentImage = this.items[this.currentImageIndex].path;
+        } else {
+          this.currentImage = this.brokenImage;
+        }
+        
         console.log(this.currentImage);
 
         this.updateCounting();
@@ -236,6 +240,17 @@ export default {
         this.count.failed = 0;
       }
     },
+    showingModel(){
+      this.showModal = true;
+      window.ipc.send("GET_ALL_DEFECT", {});
+    },
+    defectModalOk() {
+      // when ok button on modal is clicked
+      console.log(this.defectSelected);
+    },
+    processDefectCategory() {
+      // implement defect category submission here
+    },
     returnToFiles() {
       this.$router.push({
         name: "Files",
@@ -262,7 +277,29 @@ export default {
             this.toast("Failed getting image from the folder.", "error");
           }
         }
-        this.loadNextImage(payload.direction);
+        this.loadNextImage(payload.exist, payload.direction);
+      }
+    });
+
+    window.ipc.on("GET_ALL_DEFECT", (payload) => {
+      if(payload.result == "error"){
+        this.toast("Failed getting all defect categories.", "error");
+        this.isDefectNotEmpty = true;
+      } else {
+
+        if(payload.items.length == 0){
+          this.isDefectNotEmpty = true;
+        } else {
+          this.isDefectNotEmpty = false;
+        }
+
+        var defects = [];
+
+        for(var i = 0; i < payload.items.length; i++){
+          defects.push({ text: payload.items[i].name, value: payload.items[i]._id });
+        }
+
+        this.defectOptions = defects;
       }
     });
 
@@ -274,7 +311,7 @@ export default {
     //this.loadNextImage(0);
   },
   beforeDestory() {
-    let activeChannel = ["CHECK_IMAGE_AVAILABILITY"];
+    let activeChannel = ["CHECK_IMAGE_AVAILABILITY", "GET_ALL_DEFECT"];
     window.ipc.removeAllListeners(activeChannel);
   },
 };
