@@ -76,7 +76,7 @@ function updateFolderDatabaseChecksum(folderId, checksum) {
 
 }
 
-function checkFolderDatabaseAndFolder(folderPath, integrityError = false) {
+function checkFolderDatabaseAndFolder(folderPath) {
 
       return new Promise(async (resolve, reject) => {
             logger.info("checkFolderDatabaseAndFolder: Creating folder database and creating necessary folders. Path: " + folderPath);
@@ -148,7 +148,7 @@ function scanFolderImages(folderPath) {
                         logger.info("scanFolderImages: deleting folder database images record not in folder.");
 
                         while (statement.step()) {
-                              imageInfo = statement.getAsObject();
+                              var imageInfo = statement.getAsObject();
 
                               if (!fs.existsSync(imageInfo.path)) {
 
@@ -156,11 +156,19 @@ function scanFolderImages(folderPath) {
                                           var passPath = path.join(folderPath, "./pass/" + imageInfo.name);
                                           fs.unlinkSync(passPath);
                                     } else if (imageInfo.status === 2) {
-                                          var failedPath = path.join(folderPath, "./failed/" + imageInfo.defect_name + "/" + imageInfo.name);
-                                          fs.unlinkSync(failedPath);
+
+                                          var defectStatement = db.prepare("SELECT * FROM image_defects WHERE image_id = " + imageInfo._id + ";");
+
+                                          while(defectStatement.step()){
+                                                var failedPath = path.join(folderPath, "./failed/" + defectStatement.getAsObject().defect_name + "/" + imageInfo.name);
+                                                fs.unlinkSync(failedPath);
+                                          }
+
+                                          defectStatement.reset();
+                                          
                                     }
 
-                                    db.run("DELETE FROM images WHERE _id = " + imageInfo._id);
+                                    db.run("DELETE FROM images WHERE _id = " + imageInfo._id + "; DELETE FROM image_defects WHERE image_id = " + imageInfo._id + ";");
                                     logger.info("scanFolderImages: Image not exist in folder, deleted folder database, image record. Name: " + imageInfo.name);
                               } else {
                                     logger.info("scanFolderImages: Image exist in folder and folder database, ignore delete folder database, image record. Name: " + imageInfo.name);
@@ -179,7 +187,7 @@ function scanFolderImages(folderPath) {
                                           statement.step();
 
                                           if (statement.getAsObject().count === 0) {
-                                                db.run("INSERT INTO images (name, path, status, defect_name, date_created) VALUES ('" + file + "', '" + path.join(folderPath, file) + "', " + imageStatus.pending + ", '', '" + getCurrentDateTime() + "')");
+                                                db.run("INSERT INTO images (name, path, status, date_created) VALUES ('" + file + "', '" + path.join(folderPath, file) + "', " + imageStatus.pending + ", '" + getCurrentDateTime() + "')");
                                                 logger.info("scanFolderImages: New image detected, inserted new image into folder database, image name: " + file);
                                           } else {
                                                 logger.info("scanFolderImages: Image exist in folder and folder database, ignore insert images into folder database, image name: " + file);
@@ -225,6 +233,16 @@ function getAllImages(folderPath) {
 
                         while (statement.step()) {
                               var row = statement.getAsObject();
+
+                              if(row.status === imageStatus.failed){
+                                    var defectStatement = db.prepare("SELECT * FROM image_defects WHERE image_id = " + row._id + ";");
+                                    var defectName = [];
+                                    while(defectStatement.step()){
+                                          defectName.push(defectStatement.getAsObject());
+                                    }
+                                    row.defects = defectName;
+                              }
+
                               result.push(row);
                         }
 
@@ -242,10 +260,67 @@ function getAllImages(folderPath) {
 
 }
 
+async function updateImageStatus(folderPath, imageId, imageName, image_status){
+
+      return new Promise(async (resolve, reject) => {
+            logger.info("updateImageStatus: updating image status. Folder path: " + folderPath + " Image id: " + imageId + " Image status: " + JSON.stringify(image_status));
+            var databasePath = path.join(folderPath, "./appdata/" + databaseName);
+            var databaseBuffer, buffer;
+
+            try {
+                  databaseBuffer = fs.readFileSync(databasePath);
+
+                  initSqlJs().then(async (SQL) => {
+                        const db = new SQL.Database(databaseBuffer);
+                        db.run("UPDATE images SET status = " + image_status.status + " WHERE _id = " + imageId + ";");
+
+                        if(image_status.status === imageStatus.passed){
+                              fs.copyFileSync(path.join(folderPath, "./" + imageName), path.join(folderPath, "./passed/" + imageName));
+                        }
+
+                        if(image_status.status === imageStatus.failed){
+                              //fs.copyFileSync();
+                              var defectList = await localDatabase.getAllDefectInfo();
+                              var defectValue;
+
+                              for(var i = 0; i < image_status.defects.length; i++){
+                                    defectValue = defectList.items.find(o => o._id === image_status.defects[i]);
+                                    db.run("INSERT INTO image_defects (image_id, defect_name) VALUES (" + imageId + ", '" + defectValue.name + "');");
+
+                                    if(!fs.existsSync(path.join(folderPath, "./failed/" + defectValue.name))){
+                                          fs.mkdirSync(path.join(folderPath, "./failed/" + defectValue.name));
+                                    }
+
+                                    fs.copyFileSync(path.join(folderPath, "./" + imageName), path.join(folderPath, "./failed/" + defectValue.name + "/" + imageName));
+
+                              }
+
+                        }
+
+                        buffer = new Buffer(db.export());
+                        fs.writeFileSync(databasePath, buffer);
+                        logger.info("updateImageStatus: Successful update iamge status. Folder path: " + folderPath + "Image id: " + imageId + "Image status: " + JSON.stringify(image_status));
+                        db.close();
+
+                        var databaseChecksum = crypto.createHash("sha256");
+                        databaseChecksum.update(buffer);
+
+                        resolve({ result: "success" , checksum: databaseChecksum.digest("hex") });
+                  });
+            } catch(error) {
+                  logger.error("updateImageStatus: Failed update image status. \n" + error);
+            }
+
+      });
+
+}
+
 module.exports = folderDatabase = {
+      imageStatus: imageStatus,
       updateFolderDatabaseChecksum,
       checkFolderDatabaseAndFolder,
       checkFolderDbIntegrity,
       scanFolderImages,
       getAllImages,
+      updateImageStatus,
 }

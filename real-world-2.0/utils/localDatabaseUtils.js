@@ -196,12 +196,46 @@ function getFolderInfoFromLocalDB(folder_id) {
 
                         db.close();
 
-                        logger.info("getFolderInfoFromLocalDB: successful getting folder info from local database.");
+                        logger.info("getFolderInfoFromLocalDB: Successful getting folder info from local database.");
                         resolve({ result: "success", item: result });
                   });
 
             } catch (error) {
-                  logger.error("getFolderInfoFromLocalDB: failed getting folder info from local database.\n" + error);
+                  logger.error("getFolderInfoFromLocalDB: Failed getting folder info from local database.\n" + error);
+                  reject({ result: "error", reason: error });
+            }
+
+      });
+
+}
+
+function getAllDefectInfo(){
+
+      return new Promise((resolve, reject) => {
+
+            logger.info("getAllDefectInfo: Getting all defect info from local database.");
+            var databasePath = path.join(app.getAppPath(), "./" + databaseName);
+            var databaseBuffer;
+
+            try {
+                  databaseBuffer = fs.readFileSync(databasePath);
+
+                  initSqlJs().then((SQL) => {
+                        const db = new SQL.Database(databaseBuffer);
+                        const statement = db.prepare(selectAllDefectLocalDb);
+                        var result = [];
+
+                        while(statement.step()){
+                              result.push(statement.getAsObject());
+                        }
+                        
+                        db.close();
+
+                        logger.info("getAllDefectInfo: Successful getting all defect info from local database.");
+                        resolve({ result: "success", items: result });
+                  });
+            } catch(error) {
+                  logger.error("getAllDefectInfo: Failed getting all defect info from local database.\n" + error);
                   reject({ result: "error", reason: error });
             }
 
@@ -219,4 +253,5 @@ module.exports = localDatabase = {
       deleteLocalDatabaseDefect,
       updateLocalDatabaseChecksum,
       getFolderInfoFromLocalDB,
+      getAllDefectInfo,
 }

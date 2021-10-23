@@ -12,7 +12,8 @@ const createLocalDb = " \
                         ";
 
 const createFolderDb = " \
-                        CREATE TABLE images (_id INTEGER PRIMARY KEY, name TEXT, path TEXT, status INTEGER, defect_name TEXT, date_created TEXT); \
+                        CREATE TABLE images (_id INTEGER PRIMARY KEY, name TEXT, path TEXT, status INTEGER, date_created TEXT); \
+                        CREATE TABLE image_defects (_id INTEGER PRIMARY KEY, image_id INTEGER, defect_name TEXT); \
                         ";
 
 function getCurrentDateTimeNumber() {

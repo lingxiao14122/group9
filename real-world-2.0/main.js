@@ -203,9 +203,9 @@ ipcMain.on("GET_ALL_FOLDER", async (event, payload) => {
 
 ipcMain.on("DELETE_FOLDER", async (event, payload) => {
 
-      if (payload._id === undefined || payload._id === null || payload._id === NaN) {
-            logger.error("deleteFolderChannel: Failed delete folder path in local database, reason: Unknown folder id.");
-            event.reply("DELETE_FOLDER", { result: "error", code: 1, reason: "Unknown folder id" });
+      if (payload._id === undefined || payload._id === null || Number.isNaN(payload._id)) {
+            logger.error("deleteFolderChannel: Failed delete folder path in local database. Reason: Unknown folder id.");
+            event.reply("DELETE_FOLDER", { result: "error", code: 1, reason: "Unknown folder id." });
       } else {
             logger.info("deleteFolderChannel: Deleting folder path in local database, id: " + payload._id);
             var databaseBuffer;
@@ -230,7 +230,7 @@ ipcMain.on("DELETE_FOLDER", async (event, payload) => {
 ipcMain.on("INSERT_NEW_DEFECT", async (event, payload) => {
 
       if (payload.defect_name === undefined || payload.defect_name === null) {
-            logger.error("insertNewDefectChannel: Insert new defect category failed. Reason: defect name are undefined.");
+            logger.error("insertNewDefectChannel: Failed Insert new defect category. Reason: defect name are undefined.");
             event.reply("INSERT_NEW_DEFECT", { result: "error", code: 1, reason: "Defect name are undefined." });
       } else {
             logger.info("insertNewDefectChannel: Inserting new defect category into local database...");
@@ -294,9 +294,9 @@ ipcMain.on("GET_ALL_DEFECT", async (event, payload) => {
 
 ipcMain.on("DELETE_DEFECT", async (event, payload) => {
 
-      if(payload._id === undefined || payload._id === null || payload._id === NaN){
-            logger.error("deleteDefectChannel: Failed delete defect category in local database, reason: Unknown defect category id.");
-            event.reply("DELETE_DEFECT", { result: "error", code: 1, reason: "Unknown defect category id."});
+      if (payload._id === undefined || payload._id === null || Number.isNaN(payload._id)) {
+            logger.error("deleteDefectChannel: Failed delete defect category in local database. Reason: Unknown defect category id.");
+            event.reply("DELETE_DEFECT", { result: "error", code: 1, reason: "Unknown defect category id." });
       } else {
             logger.info("deleteDefectChannel: Deleting defect category in local database, id: " + payload._id);
             var databaseBuffer;
@@ -321,9 +321,9 @@ ipcMain.on("DELETE_DEFECT", async (event, payload) => {
 
 ipcMain.on("GET_IMAGES", async (event, payload) => {
 
-      if (payload.folder_id === undefined || payload.folder_id === null) {
-            logger.error("getImagesChannel: Getting all images failed. Reason: unknown folder_id.");
-            event.reply("GET_IMAGES", { result: "error", code: 2, reason: "Unknown folder_id" });
+      if (payload.folder_id === undefined || payload.folder_id === null || Number.isNaN(payload.folder_id)) {
+            logger.error("getImagesChannel: Failed getting all images. Reason: Unknown folder_id.");
+            event.reply("GET_IMAGES", { result: "error", code: 2, reason: "Unknown folder_id." });
       } else {
             logger.info("getImagesChannel: Getting all images from folder database. folder_id: " + payload.folder_id);
 
@@ -351,18 +351,16 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
 
             } catch (error) {
 
-                  if (error.result === "error") {
-                        logger.warn("getImagesChannel: Folder database Integrity not complete, reason: " + error.reason);
+                  if(error.result === "error" && error.code === 1){
+                        logger.warn("getImagesChannel: Folder database Integrity not complete. Reason: " + error.reason);
                         logger.info("getImagesChannel: Recreating new folder database and checking necessary folders..., path: " + getResult.item[0].path);
                         var checkResult = await folderDatabase.checkFolderDatabaseAndFolder(getResult.item[0].path, true);
                         var updateResult = await folderDatabase.updateFolderDatabaseChecksum(getResult.item[0]._id, checkResult.databaseChecksum);
-
-                        logger.info("getImagesChannel: Recreated new folder database and checking necessary folders..., path: " + getResult.item[0].path);
-                        event.reply("GET_IMAGES", { result: "error", code: 1, reason: error.reason, solution: "Recreated Folder Database and checked necessary folders." });
                   } else {
-                        logger.error("getImagesChannel: Getting all images failed. Reason: " + JSON.stringify(error));
+                        logger.error("getImagesChannel: Failed getting all images failed. Reason: " + JSON.stringify(error));
                         event.reply("GET_IMAGES", { result: "error", code: 3, reason: JSON.stringify(error) });
                   }
+
             }
 
       }
@@ -371,19 +369,56 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
 
 ipcMain.on("CHECK_IMAGE_AVAILABILITY", (event, payload) => {
 
-      if(payload.iamge === null || payload.image === undefined || payload.image === NaN){
+      if (payload.image === null || payload.image === undefined || Number.isNaN(payload.image)) {
             logger.error("checkImageAvailabilityChannel: Failed checking image availability. Reason: Unknown Image info.");
             event.reply("CHECK_IMAGE_AVAILABILITY", { result: "error", code: 1, reason: "Unknown Image info." });
       } else {
             logger.info("checkImageAvailabilityChannel: Checking image availability, image path: " + payload.image.path);
 
-            if(fs.existsSync(payload.image.path)){
+            if (fs.existsSync(payload.image.path)) {
                   logger.info("checkImageAvailabilityChannel: Successful check image availability, image path: " + payload.image.path);
                   event.reply("CHECK_IMAGE_AVAILABILITY", { result: "success", exist: true, direction: payload.direction });
             } else {
                   logger.warn("checkImageAvailabilityChannel: Image are not exist in the folder path, image path: " + payload.image.path);
                   event.reply("CHECK_IMAGE_AVAILABILITY", { result: "warn", exist: false, direction: payload.direction });
             }
+      }
+
+});
+
+ipcMain.on("UPDATE_IMAGE_STATUS", async (event, payload) => {
+
+      if (payload.folder_id === undefined || payload.folder_id === null || Number.isNaN(payload.folder_id)) {
+            logger.error("updateImageStatusChannel: Failed updating image status. Reason: UUnknown folder_id.");
+            event.reply("UPDATE_IMAGE_STATUS", { result: "error", code: 1, reason: "Unknown folder_id." })
+      } else if (payload.image_id === undefined || payload.image_id === null || Number.isNaN(payload.image_id)) {
+            logger.error("updateImageStatusChannel: Failed updating image status. Reason: Unknown image_id.");
+            event.reply("UPDATE_IMAGE_STATUS", { result: "error", code: 1, reason: "Unknown image_id." });
+      } else if (payload.image_name === undefined || payload.image_name === null || Number.isNaN(payload.image_name)){
+            logger.error("updateImageStatusChannel: Failed updating image status. Reason: Unknown image_name.");
+            event.reply("UPDATE_IMAGE_STATUS", { result: "error", code: 1, reason: "Unknown image_name." });
+      } else if (payload.image_status === undefined || payload.image_status === null || typeof payload.image_status !== "object") {
+            logger.error("updateImageStatusChannel: Failed updating image status. Reason: Unknown image_status.");
+            event.reply("UPDATE_IMAGE_STATUS", { result: "error", code: 1, reason: "Unknown image_status." });
+      } else {
+
+            logger.info("updateImageStatusChannel: Updating image status...");
+
+            try {
+                  var getFolderResult = await localDatabase.getFolderInfoFromLocalDB(payload.folder_id);
+                  var checkIntegrityResult = await folderDatabase.checkFolderDbIntegrity(getFolderResult.item[0].path, getFolderResult.item[0].checksum);
+
+                  var updateResult = await folderDatabase.updateImageStatus(getFolderResult.item[0].path, payload.image_id, payload.image_name, payload.image_status);
+                  var updateChecksumResult = await folderDatabase.updateFolderDatabaseChecksum(getFolderResult.item[0]._id, updateResult.checksum);
+                  var changeResult = await localDatabase.updateLocalDatabaseChecksum();
+                  logger.info("updateImageStatusChannel: Successful update image status.");
+                  event.reply("UPDATE_IMAGE_STATUS", { result: "success", image_status: payload.image_status });
+                  
+
+            } catch (error) {
+                  logger.error("updateImageStatusChannel: Failed updating image status. \n" + JSON.stringify(error));
+            }
+
       }
 
 });
