@@ -71,6 +71,10 @@
         <template #cell(status)="data">
           {{ transformStatusToString(data) }}
         </template>
+
+        <template #cell(defects)="data">
+          {{ getImageDefectsString(data) }}
+        </template>
       </b-table>
     </div>
   </div>
@@ -91,6 +95,12 @@ export default {
       allFields: [
         { key: "name", label: "Image Name" },
         { key: "status", label: "Status" },
+        { key: "defects", label: "Defect Categories" },
+        { key: "date_created", label: "Date Created" },
+      ],
+      failedFields: [
+        { key: "name", label: "Image Name" },
+        { key: "defects", label: "Defect Categories" },
         { key: "date_created", label: "Date Created" },
       ],
       items: [],
@@ -126,10 +136,19 @@ export default {
       window.ipc.send("GET_IMAGES", { folder_id: this.folder_id });
     },
     clickHandler(tablerow, index) {
-      alert("row clicked index: " + index);
-      console.log(tablerow);
-
-      if(this.tableIsDisplaying === this.tabletab.all){
+      if (this.tableIsDisplaying === this.tabletab.all) {
+        this.$router.push({
+          name: "Segregation",
+          params: {
+            folder_id: this.folder_id,
+            index: index,
+            items: this.allItems,
+          },
+        });
+      } else {
+        let items = this.allItems;
+        let index = items.findIndex(x => x._id === tablerow._id);
+        
         this.$router.push({
           name: "Segregation",
           params: {
@@ -139,7 +158,6 @@ export default {
           }
         });
       }
-
     },
     tabClicked: function (tabname) {
       this.tableIsDisplaying = tabname;
@@ -155,7 +173,7 @@ export default {
         this.items = this.passedItems;
       }
       if (this.tableIsDisplaying === this.tabletab.failed) {
-        this.fields = this.defaultFields;
+        this.fields = this.failedFields;
         this.items = this.failedItems;
       }
       if (this.tableIsDisplaying === this.tabletab.all) {
@@ -177,6 +195,24 @@ export default {
       }
 
       return "err_no_status";
+    },
+    getImageDefectsString(data) {
+      let status = data.item.status;
+      let defectList = data.item.defects;
+      let defectString = "";
+
+      if (status === 2) {
+        for (var i = 0; i < defectList.length; i++) {
+          defectString = defectString + defectList[i].defect_name;
+          if (i < defectList.length - 1) {
+            defectString = defectString + ", ";
+          }
+        }
+
+        return defectString;
+      } else {
+        return "-";
+      }
     },
   },
   mounted() {
@@ -222,12 +258,11 @@ export default {
         this.count.failed = count.failed;
 
         this.switchTable();
-      } else if(payload.result == "error"){
-
+      } else if (payload.result == "error") {
         this.folderInfo = {
           name: "",
-          path: ""
-        }
+          path: "",
+        };
 
         this.count.all = 0;
         this.count.pending = 0;
@@ -239,25 +274,33 @@ export default {
         this.passedItems = [];
         this.failedItems = [];
 
-        if(payload.code == 1){
-          this.toast("Failed getting folder images info. Reason: " + payload.reason + " " + payload.solution, "error");
+        if (payload.code == 1) {
+          this.toast(
+            "Failed getting folder images info. Reason: " +
+              payload.reason +
+              " " +
+              payload.solution,
+            "error"
+          );
           this.toast("Getting folder images info again.");
           window.ipc.send("GET_IMAGES", { folder_id: this.folder_id });
-        } else if(payload.code == 2){
-          this.toast("Failed getting folder images info. Reason: " + payload.reason, "error");
+        } else if (payload.code == 2) {
+          this.toast(
+            "Failed getting folder images info. Reason: " + payload.reason,
+            "error"
+          );
         } else {
           this.toast("Failed getting folder images info.", "error");
         }
-
       }
     });
 
     window.ipc.send("GET_IMAGES", { folder_id: this.folder_id });
   },
   beforeDestroy() {
-    let activeChannel = ['GET_IMAGES'];
+    let activeChannel = ["GET_IMAGES"];
     window.ipc.removeAllListeners(activeChannel);
-  }
+  },
 };
 </script>
 
