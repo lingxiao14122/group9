@@ -14,14 +14,14 @@
         </div>
 
         <div class="infobar-below d-flex justify-content-between">
-          <h5>Status: Pending</h5>
+          <h5>Status: {{transformStatusToString(items[currentImageIndex].status)}}</h5>
           <h5>
             All: {{ items.length }} Pending: {{ count.pending }}, Pass: {{ count.passed }}, Failed: {{ count.failed }}
           </h5>
         </div>
 
         <div class="infobar-below d-flex justify-content-between">
-          <h5>Defect Category: -</h5>
+          <h5>Defect Category: {{getImageDefectsString()}}</h5>
         </div>
       </div>
 
@@ -50,7 +50,7 @@
           </b-button>
         </div>
         <div class="flex-grow-1">
-          <b-button class="m-2 btn-seg-custom" variant="primary" @click="checkImageAvailablity(1)">PASS</b-button>
+          <b-button class="m-2 btn-seg-custom" variant="primary" @click="passBtnClicked()">PASS</b-button>
           <b-button class="m-2 btn-seg-custom" variant="danger" @click="showingModel()">FAIL</b-button>
         </div>
         <div>
@@ -187,10 +187,18 @@ export default {
     },
     checkImageAvailablity(direction) {
       var nextIndex = this.currentImageIndex + direction;
-      window.ipc.send("CHECK_IMAGE_AVAILABILITY", {
+
+      if(nextIndex < 0){
+        this.toast("No image at front.", "error");
+      } else if(nextIndex === this.items.length){
+        this.toast("No image at end.", "error");
+      }else {
+        window.ipc.send("CHECK_IMAGE_AVAILABILITY", {
         direction: direction,
         image: this.items[nextIndex],
       });
+      }
+
     },
     //purpose of this function is just to modify this.currentImage state only
     loadNextImage(iamgeExist, direction) {
@@ -201,15 +209,12 @@ export default {
       } else {
         //direction 0 no move, direction 1 forward, direction -1 previous
         this.currentImageIndex = this.currentImageIndex + direction;
-        console.log("at index : " + this.currentImageIndex);
 
         if(iamgeExist){
           this.currentImage = this.items[this.currentImageIndex].path;
         } else {
           this.currentImage = this.brokenImage;
         }
-        
-        console.log(this.currentImage);
 
         this.updateCounting();
         this.checkBtnDisable();
@@ -240,16 +245,48 @@ export default {
         this.count.failed = 0;
       }
     },
+    passBtnClicked(){
+      this.sendIpcAndUpdateImageStatus(0);
+    },
     showingModel(){
       this.showModal = true;
       window.ipc.send("GET_ALL_DEFECT", {});
     },
     defectModalOk() {
       // when ok button on modal is clicked
-      console.log(this.defectSelected);
+      this.sendIpcAndUpdateImageStatus(1);
     },
-    processDefectCategory() {
-      // implement defect category submission here
+    //if status = 0 means image pass, status = 1 means image failed, 
+    sendIpcAndUpdateImageStatus(status){
+      var request;
+      switch(status){
+        case 0: {
+          request = {
+            folder_id: this.folder_id,
+            image_id: this.items[this.currentImageIndex]._id,
+            image_name: this.items[this.currentImageIndex].name,
+            image_status: {
+              status: 1,
+              defects: [],
+            }
+          };
+          window.ipc.send("UPDATE_IMAGE_STATUS", request);
+          break;
+        }
+        case 1: {
+          request = {
+            folder_id: this.folder_id,
+            image_id: this.items[this.currentImageIndex]._id,
+            image_name: this.items[this.currentImageIndex].name,
+            image_status: {
+              status: 2,
+              defects: this.defectSelected,
+            }
+          };
+          window.ipc.send("UPDATE_IMAGE_STATUS", request);
+          break;
+        }
+      }
     },
     returnToFiles() {
       this.$router.push({
@@ -259,10 +296,40 @@ export default {
         },
       });
     },
+    transformStatusToString(data) {
+
+      if (data === 0) {
+        return "Pending";
+      }
+      if (data === 1) {
+        return "Passed";
+      }
+      if (data === 2) {
+        return "Failed";
+      }
+
+      return "err_no_status";
+    },
+    getImageDefectsString(){
+      if(this.items[this.currentImageIndex].status == 2){
+        var defectList = this.items[this.currentImageIndex].defects;
+        var defectString = "";
+
+        for(var i = 0; i < defectList.length; i++){
+          defectString = defectString + defectList[i].defect_name;
+          if(i < defectList.length - 1){
+            defectString = defectString + ", ";
+          }
+        }
+
+        return defectString;
+      } else {
+        return "-";
+      }
+    }
   },
   mounted() {
     window.ipc.on("CHECK_IMAGE_AVAILABILITY", (payload) => {
-      console.log(payload);
       if (payload.result == "error") {
         if (payload.code == 1) {
           this.toast("Failed getting image from the folder. Reason: " + payload.reason, "error");
@@ -303,15 +370,24 @@ export default {
       }
     });
 
-    console.log(this.folder_id);
-    console.log(this.index);
-    console.log(this.items);
+    window.ipc.on("UPDATE_IMAGE_STATUS", (payload) => {
+      if(payload.result == "success"){
+        this.items[this.currentImageIndex].status = payload.image_status.status;
+        if(payload.image_status.status == 2){
+          this.items[this.currentImageIndex].defects = payload.image_status.defects;
+        }
+        this.updateCounting();
+        this.checkImageAvailablity(1);
+      } else if(payload.result == "error"){
+        this.toast("Failed updating current image status.", "error");
+      }
+    });
+
     this.currentImageIndex = this.index;
     this.checkImageAvailablity(0);
-    //this.loadNextImage(0);
   },
   beforeDestory() {
-    let activeChannel = ["CHECK_IMAGE_AVAILABILITY", "GET_ALL_DEFECT"];
+    let activeChannel = ["CHECK_IMAGE_AVAILABILITY", "GET_ALL_DEFECT", "UPDATE_IMAGE_STATUS"];
     window.ipc.removeAllListeners(activeChannel);
   },
 };
