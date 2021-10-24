@@ -8,12 +8,13 @@
     "start": "vue-cli-service build && electron .",
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
   "dependencies": {
     "bootstrap-vue": "^2.21.2",
     "core-js": "^3.6.5",
-    "electron": "^15.0.0",
     "electron-log": "^4.4.1",
     "sql.js": "^1.6.2",
     "vue": "^2.6.11",
@@ -21,6 +22,7 @@
     "vuex": "^3.4.0"
   },
   "devDependencies": {
+    "electron": "^15.0.0",
     "@vue/cli-plugin-babel": "~4.5.0",
     "@vue/cli-plugin-eslint": "~4.5.0",
     "@vue/cli-plugin-router": "~4.5.0",
@@ -29,7 +31,8 @@
     "babel-eslint": "^10.1.0",
     "eslint": "^6.7.2",
     "eslint-plugin-vue": "^6.2.2",
-    "vue-template-compiler": "^2.6.11"
+    "vue-template-compiler": "^2.6.11",
+    "electron-builder": "~22.10.5"
   },
   "eslintConfig": {
     "root": true,
@@ -49,5 +52,21 @@
     "> 1%",
     "last 2 versions",
     "not dead"
-  ]
+  ],
+  "build": {
+    "productName": "Image Segregation System",
+    "appId": "realWorld.group9.ImageSegregationSystem",
+    "win": {
+      "target": [
+        "portable"
+      ]
+    },
+    "portable": {
+      "artifactName": "ImageSegregationSystem_portable.exe"
+    },
+    "directories": {
+      "output": "build/output",
+      "buildResources": "build/buildResources"
+    }
+  }
 }
