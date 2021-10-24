@@ -69,7 +69,7 @@
 
     <!-- Modal form start -->
     <div class="appmodal">
-      <b-modal v-model="showModal" title="Choose Defect" @ok="defectModalOk">
+      <b-modal title="Choose Defect" v-model="showModal" :hide-footer="isDefectNotEmpty" @ok="defectModalOk">
         <b-form-group v-slot="{ ariaDescribedby }">
           <h6 v-if="isDefectNotEmpty">Defect Category are empty.</h6>
           <b-form-checkbox-group
@@ -84,36 +84,6 @@
     </div>
     <!-- Modal form end -->
 
-    <!-- <div class="flex-grow-1 d-flex align-items-end">
-      <div class="container mb-3 mx-5">
-        <div class="button-group mt-2 d-flex align-self-end">
-          <div>
-            <b-button
-              class="m-2 btn-seg-custom"
-              variant="primary"
-              @click="checkImageAvailablity(-1)"
-              :disabled="prevBtnIsDisabled"
-            >
-              <b-icon-arrow-left-circle></b-icon-arrow-left-circle>
-            </b-button>
-          </div>
-          <div class="flex-grow-1">
-            <b-button class="m-2 btn-seg-custom" variant="primary" @click="checkImageAvailablity(1)">PASS</b-button>
-            <b-button class="m-2 btn-seg-custom" variant="danger">FAIL</b-button>
-          </div>
-          <div>
-            <b-button
-              class="m-2 btn-seg-custom"
-              variant="primary"
-              @click="checkImageAvailablity(1)"
-              :disabled="nextBtnIsDisabled"
-            >
-              <b-icon-arrow-right-circle></b-icon-arrow-right-circle>
-            </b-button>
-          </div>
-        </div>
-      </div>
-    </div> -->
   </div>
 </template>
 
@@ -405,10 +375,6 @@ export default {
   padding-left: 0px;
 }
 
-/* .bg-custom {
-   background-color: rgb(65, 65, 65);
-} */
-
 .btn-seg-custom {
   padding: 0.75rem 2rem;
   font-size: 1.5rem;
@@ -429,59 +395,11 @@ export default {
 
 .c-image1 {
   max-height: calc(100vh - 270px);
+  max-width: calc(100vw - 270px);
 }
 
 .c-image {
   max-height: 100px;
   min-height: 100px;
-}
-
-@media (min-height: 400px) {
-  .c-image {
-    max-height: 100px;
-    min-height: 100px;
-  }
-}
-@media (min-height: 450px) {
-  .c-image {
-    max-height: 200px;
-    min-height: 200px;
-  }
-}
-@media (min-height: 500px) {
-  .c-image {
-    max-height: 250px;
-    min-height: 250px;
-  }
-}
-@media (min-height: 550px) {
-  .c-image {
-    max-height: 300px;
-    min-height: 300px;
-  }
-}
-@media (min-height: 600px) {
-  .c-image {
-    max-height: 350px;
-    min-height: 350px;
-  }
-}
-@media (min-height: 650px) {
-  .c-image {
-    max-height: 400px;
-    min-height: 400px;
-  }
-}
-@media (min-height: 700px) {
-  .c-image {
-    max-height: 450px;
-    min-height: 450px;
-  }
-}
-@media (min-height: 760px) {
-  .c-image {
-    max-height: 500px;
-    min-height: 500px;
-  }
 }
 </style>
