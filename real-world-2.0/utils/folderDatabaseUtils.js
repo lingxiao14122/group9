@@ -51,7 +51,7 @@ function updateFolderDatabaseChecksum(folderId, checksum) {
       return new Promise((resolve, reject) => {
             logger.info("updateFolderDatabaseChecksum: Changing new checksum value in database, folder_id: " + folderId);
 
-            var databasePath = path.join(app.getAppPath(), "./" + databaseName);
+            var databasePath = path.join(path.dirname(app.getPath("exe")), "./" + databaseName);
             var databaseBuffer, buffer;
 
             try {

@@ -2,7 +2,7 @@ const path = require("path");
 const {app} = require("electron");
 const log = require("electron-log");
 log.transports.file.level = "info";
-log.transports.file.file = path.join(app.getAppPath(), "./log/log-" + getCurrentDateTimeNumber() + ".log");
+log.transports.file.file = path.join(path.dirname(app.getPath("exe")), "./log/log-" + getCurrentDateTimeNumber() + ".log");
 log.catchErrors();
 
 function getCurrentDateTimeNumber() {

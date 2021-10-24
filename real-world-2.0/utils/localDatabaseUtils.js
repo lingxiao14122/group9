@@ -149,7 +149,7 @@ function updateLocalDatabaseChecksum(){
       return new Promise((resolve, reject) => {
 
             logger.info("updateLocalDatabaseChecksum: Changing new checksum value in " + databaseChecksumName);
-            var databasePath = path.join(app.getAppPath(), "./" + databaseName);
+            var databasePath = path.join(path.dirname(app.getPath("exe")), "./" + databaseName);
             
             if(fs.existsSync(databasePath)){
                   var databaseBuffer = fs.readFileSync(databasePath);
@@ -157,7 +157,7 @@ function updateLocalDatabaseChecksum(){
                   databaseChecksum.update(databaseBuffer);
 
                   try {
-                        fs.writeFileSync(path.join(app.getAppPath(), "./" + databaseChecksumName), databaseChecksum.digest("hex"));
+                        fs.writeFileSync(path.join(path.dirname(app.getPath("exe")), "./" + databaseChecksumName), databaseChecksum.digest("hex"));
                         logger.info("updateLocalDatabaseChecksum: Success change new checksum value in " + databaseChecksumName);
                         resolve({result: "success"});
                   } catch (error) {
@@ -179,7 +179,7 @@ function getFolderInfoFromLocalDB(folder_id) {
       return new Promise((resolve, reject) => {
 
             logger.info("getFolderInfoFromLocalDB: getting folder info from local database.");
-            var localDatabasePath = path.join(app.getAppPath(), "./" + databaseName);
+            var localDatabasePath = path.join(path.dirname(app.getPath("exe")), "./" + databaseName);
             var databaseBuffer;
 
             try {
@@ -214,7 +214,7 @@ function getAllDefectInfo(){
       return new Promise((resolve, reject) => {
 
             logger.info("getAllDefectInfo: Getting all defect info from local database.");
-            var databasePath = path.join(app.getAppPath(), "./" + databaseName);
+            var databasePath = path.join(path.dirname(app.getPath("exe")), "./" + databaseName);
             var databaseBuffer;
 
             try {

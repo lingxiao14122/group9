@@ -53,19 +53,19 @@ app.on('activate', function () {
 ipcMain.on("CHECK_LOCAL_DB_INTEGRITY", async (event, payload) => {
       logger.info("checkLocalDBIntegrityChannel: Checking local database integrity...");
 
-      var localDBExist = fs.existsSync(path.join(app.getAppPath(), "./" + database.databaseName));
-      var localDBChecksumExist = fs.existsSync(path.join(app.getAppPath(), "./" + localDatabase.databaseChecksumName));
+      var localDBExist = fs.existsSync(path.join(path.dirname(app.getPath("exe")), "./" + database.databaseName));
+      var localDBChecksumExist = fs.existsSync(path.join(path.dirname(app.getPath("exe")), "./" + localDatabase.databaseChecksumName));
 
       try {
 
             if (!localDBExist && !localDBChecksumExist) {
                   logger.info("checkLocalDBIntegrityChannel: Creating new local database and checksum value...");
 
-                  var createResult = await database.createDatabase(0, path.join(app.getAppPath(), "./database.sqlite"));
+                  var createResult = await database.createDatabase(0, path.join(path.dirname(app.getPath("exe")), "./database.sqlite"));
                   if (createResult.result === "success") {
-                        fs.writeFileSync(path.join(app.getAppPath(), "./" + localDatabase.databaseChecksumName), createResult.checksum);
+                        fs.writeFileSync(path.join(path.dirname(app.getPath("exe")), "./" + localDatabase.databaseChecksumName), createResult.checksum);
                   } else {
-                        fs.writeFileSync(path.join(app.getAppPath(), "./" + localDatabase.databaseChecksumName), "");
+                        fs.writeFileSync(path.join(path.dirname(app.getPath("exe")), "./" + localDatabase.databaseChecksumName), "");
                   }
 
                   logger.info("checkLocalDBIntegrityChannel: Successful create new local database and checksum value");
@@ -77,14 +77,14 @@ ipcMain.on("CHECK_LOCAL_DB_INTEGRITY", async (event, payload) => {
 
                         if (localDBExist) {
                               logger.warn("checkLocalDBIntegrityChannel: local database exist, backing up database and create new database and checksum");
-                              var renameResult = await database.renameDatabase(app.getAppPath());
-                              var createResult = await database.createDatabase(0, path.join(app.getAppPath(), "./" + database.databaseName));
+                              var renameResult = await database.renameDatabase(path.dirname(app.getPath("exe")));
+                              var createResult = await database.createDatabase(0, path.join(path.dirname(app.getPath("exe")), "./" + database.databaseName));
 
-                              fs.writeFileSync(path.join(app.getAppPath(), "./" + localDatabase.databaseChecksumName), "");
+                              fs.writeFileSync(path.join(path.dirname(app.getPath("exe")), "./" + localDatabase.databaseChecksumName), "");
                         } else {
-                              var createResult = await database.createDatabase(0, path.join(app.getAppPath(), "./" + database.databaseName));
+                              var createResult = await database.createDatabase(0, path.join(path.dirname(app.getPath("exe")), "./" + database.databaseName));
 
-                              fs.writeFileSync(path.join(app.getAppPath(), "./" + localDatabase.databaseChecksumName), "");
+                              fs.writeFileSync(path.join(path.dirname(app.getPath("exe")), "./" + localDatabase.databaseChecksumName), "");
                         }
 
                         logger.info("checkLocalDBIntegrityChannel: Successful create new database and checksum");
@@ -92,18 +92,18 @@ ipcMain.on("CHECK_LOCAL_DB_INTEGRITY", async (event, payload) => {
 
                   } else {
 
-                        var hash = fs.readFileSync(path.join(app.getAppPath(), "./" + localDatabase.databaseChecksumName), "utf-8");
+                        var hash = fs.readFileSync(path.join(path.dirname(app.getPath("exe")), "./" + localDatabase.databaseChecksumName), "utf-8");
 
-                        var databaseBuffer = fs.readFileSync(path.join(app.getAppPath(), "./" + database.databaseName));
+                        var databaseBuffer = fs.readFileSync(path.join(path.dirname(app.getPath("exe")), "./" + database.databaseName));
                         var databaseChecksum = crypto.createHash("sha256");
                         databaseChecksum.update(databaseBuffer);
 
                         if (hash !== databaseChecksum.digest("hex")) {
                               logger.warn("checkLocalDBIntegrityChannel: Database checksum are different, backup old one and creating new database...");
-                              var renameResult = await database.renameDatabase(app.getAppPath());
-                              var createResult = await database.createDatabase(0, path.join(app.getAppPath(), "./" + database.databaseName));
+                              var renameResult = await database.renameDatabase(path.dirname(app.getPath("exe")));
+                              var createResult = await database.createDatabase(0, path.join(path.dirname(app.getPath("exe")), "./" + database.databaseName));
 
-                              fs.writeFileSync(path.join(app.getAppPath(), "./" + localDatabase.databaseChecksumName), createResult.checksum);
+                              fs.writeFileSync(path.join(path.dirname(app.getPath("exe")), "./" + localDatabase.databaseChecksumName), createResult.checksum);
                               event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "error", code: 1, reason: "Database checksum not same.", solution: "Old database has backed up and recreated." });
                         } else {
                               logger.info("checkLocalDBIntegrityChannel: Successful checking local database integrity");
@@ -141,7 +141,7 @@ ipcMain.on("READ_FOLDER_PATH", async (event, payload) => {
             } else {
                   logger.info("readFolderAndImage: User selected folder path: " + result.filePaths);
                   var databaseBuffer;
-                  var databasePath = path.join(app.getAppPath(), "./" + database.databaseName);
+                  var databasePath = path.join(path.dirname(app.getPath("exe")), "./" + database.databaseName);
 
                   try {
                         databaseBuffer = fs.readFileSync(databasePath);
@@ -184,7 +184,7 @@ ipcMain.on("GET_ALL_FOLDER", async (event, payload) => {
 
       logger.info("getAllFolderChannel: Getting all folder from local database...");
       var databaseBuffer;
-      var databasePath = path.join(app.getAppPath(), "./" + database.databaseName);
+      var databasePath = path.join(path.dirname(app.getPath("exe")), "./" + database.databaseName);
 
       try {
             databaseBuffer = fs.readFileSync(databasePath);
@@ -227,7 +227,7 @@ ipcMain.on("DELETE_FOLDER", async (event, payload) => {
       } else {
             logger.info("deleteFolderChannel: Deleting folder path in local database, id: " + payload._id);
             var databaseBuffer;
-            var databasePath = path.join(app.getAppPath(), database.databaseName);
+            var databasePath = path.join(path.dirname(app.getPath("exe")), database.databaseName);
 
             try {
                   databaseBuffer = fs.readFileSync(databasePath);
@@ -259,7 +259,7 @@ ipcMain.on("INSERT_NEW_DEFECT", async (event, payload) => {
       } else {
             logger.info("insertNewDefectChannel: Inserting new defect category into local database...");
             var databaseBuffer;
-            var databasePath = path.join(app.getAppPath(), "./" + database.databaseName);
+            var databasePath = path.join(path.dirname(app.getPath("exe")), "./" + database.databaseName);
 
             try {
                   databaseBuffer = fs.readFileSync(databasePath);
@@ -293,7 +293,7 @@ ipcMain.on("GET_ALL_DEFECT", async (event, payload) => {
 
       logger.info("getAllDefectChannel: Getting defect categories from local database...");
       var databaseBuffer;
-      var databasePath = path.join(app.getAppPath(), "./" + database.databaseName);
+      var databasePath = path.join(path.dirname(app.getPath("exe")), "./" + database.databaseName);
 
       try {
             databaseBuffer = fs.readFileSync(databasePath);
@@ -336,7 +336,7 @@ ipcMain.on("DELETE_DEFECT", async (event, payload) => {
       } else {
             logger.info("deleteDefectChannel: Deleting defect category in local database, id: " + payload._id);
             var databaseBuffer;
-            var databasePath = path.join(app.getAppPath(), database.databaseName);
+            var databasePath = path.join(path.dirname(app.getPath("exe")), database.databaseName);
 
             try {
                   databaseBuffer = fs.readFileSync(databasePath);
