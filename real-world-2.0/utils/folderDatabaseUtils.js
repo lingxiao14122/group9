@@ -263,7 +263,7 @@ function getAllImages(folderPath) {
 async function updateImageStatus(folderPath, imageId, imageName, image_status){
 
       return new Promise(async (resolve, reject) => {
-            logger.info("updateImageStatus: updating image status. Folder path: " + folderPath + " Image id: " + imageId + " Image status: " + JSON.stringify(image_status));
+            logger.info("updateImageStatus: updating image status. Folder path: " + folderPath + ", Image name: " + imageName + ", Image status: " + JSON.stringify(image_status));
             var databasePath = path.join(folderPath, "./appdata/" + databaseName);
             var databaseBuffer, buffer;
 
@@ -272,14 +272,40 @@ async function updateImageStatus(folderPath, imageId, imageName, image_status){
 
                   initSqlJs().then(async (SQL) => {
                         const db = new SQL.Database(databaseBuffer);
+
+                        var statement = db.prepare("SELECT status FROM images WHERE _id = " + imageId + ";");
+                        statement.step();
+
+                        if(statement.getAsObject().status === 1){
+                              logger.info("updateImageStatus: The image status in last modified are passed, deleting iamge from passed folder. Image name: " + imageName);
+                              fs.unlinkSync(path.join(folderPath, "./passed/" + imageName));
+                              logger.info("updateImageStatus: Successful deleted image in passed folder. Image name: " + imageName);
+                        } else if(statement.getAsObject().status === 2){
+                              logger.info("updateImageStatus: The image status in last modified are failed, deleting iamge from failed folder. Image name: " + imageName);
+                              var defectStatement = db.prepare("SELECT defect_name from image_defects WHERE image_id = " + imageId + ";");
+                              var defectName;
+                              while(defectStatement.step()){
+                                    defectName = defectStatement.getAsObject().defect_name;
+                                    logger.info("updateImageStatus: Deleting image from path: ./failed/" + defectName + "/" + imageName);
+                                    fs.unlinkSync(path.join(folderPath, "./failed/" + defectName + "/" + imageName));
+                                    logger.info("updateImageStatus: Successful deleted image from path: ./failed/" + defectName + "/" + imageName);
+                              }
+
+                              defectStatement.reset();
+                              db.run("DELETE FROM image_defects WHERE image_id = " + imageId + ";");
+                              logger.info("updateImageStatus: Successful deleted image in failed folder. Image name: " + imageName);
+                        }
+
+                        statement.reset();
+
                         db.run("UPDATE images SET status = " + image_status.status + " WHERE _id = " + imageId + ";");
 
                         if(image_status.status === imageStatus.passed){
+                              logger.info("updateImageStatus: Copying image into passed folder. Image Name: " + imageName);
                               fs.copyFileSync(path.join(folderPath, "./" + imageName), path.join(folderPath, "./passed/" + imageName));
-                        }
-
-                        if(image_status.status === imageStatus.failed){
-                              //fs.copyFileSync();
+                              logger.info("updateImageStatus: Successful copied image info passed folder. Image Name: " + imageName);
+                        } else if(image_status.status === imageStatus.failed){
+                              logger.info("updateImageStatus: Copying image into failed folder. Image Name: " + imageName);
                               var defectList = await localDatabase.getAllDefectInfo();
                               var defectValue;
 
@@ -290,16 +316,19 @@ async function updateImageStatus(folderPath, imageId, imageName, image_status){
                                     if(!fs.existsSync(path.join(folderPath, "./failed/" + defectValue.name))){
                                           fs.mkdirSync(path.join(folderPath, "./failed/" + defectValue.name));
                                     }
-
+                                    
+                                    logger.info("updateImageStatus: Copying image into path: ./failed/" + defectValue.name + "/" + imageName);
                                     fs.copyFileSync(path.join(folderPath, "./" + imageName), path.join(folderPath, "./failed/" + defectValue.name + "/" + imageName));
+                                    logger.info("updateImageStatus: Successful copied image into path: ./failed/" + defectValue.name + "/" + imageName);
 
                               }
 
+                              logger.info("updateImageStatus: Successful copied image into failed folder. Image Name: " + imageName);
                         }
 
                         buffer = new Buffer(db.export());
                         fs.writeFileSync(databasePath, buffer);
-                        logger.info("updateImageStatus: Successful update iamge status. Folder path: " + folderPath + "Image id: " + imageId + "Image status: " + JSON.stringify(image_status));
+                        logger.info("updateImageStatus: Successful update iamge status. Folder path: " + folderPath + ", Image id: " + imageId + ", Image status: " + JSON.stringify(image_status));
                         db.close();
 
                         var databaseChecksum = crypto.createHash("sha256");
