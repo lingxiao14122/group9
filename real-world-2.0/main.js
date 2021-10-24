@@ -115,7 +115,13 @@ ipcMain.on("CHECK_LOCAL_DB_INTEGRITY", async (event, payload) => {
             }
 
       } catch (error) {
-            logger.error("checkLocalDBIntegrityChannel: Failed getting " + localDatabase.databaseChecksumName + " file: \n" + error);
+
+            if(typeof error === "object"){
+                  logger.error("checkLocalDBIntegrityChannel: Failed getting " + localDatabase.databaseChecksumName + " file: \n" + JSON.stringify(error));
+            } else {
+                  logger.error("checkLocalDBIntegrityChannel: Failed getting " + localDatabase.databaseChecksumName + " file: \n" + error);
+            }
+            
             event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "error", code: 2, reason: error });
       }
 
@@ -159,7 +165,13 @@ ipcMain.on("READ_FOLDER_PATH", async (event, payload) => {
                         }
 
                   } catch (error) {
-                        logger.error("readFolderPathChannel: Failed inserting folder path into local database: \n" + JSON.stringify(error));
+
+                        if(typeof error === "object"){
+                              logger.error("readFolderPathChannel: Failed inserting folder path into local database: \n" + JSON.stringify(error));
+                        } else {
+                              logger.error("readFolderPathChannel: Failed inserting folder path into local database: \n" + error);
+                        }
+                        
                         event.reply("READ_FOLDER_PATH", { result: "error", reason: error });
                   }
 
@@ -195,7 +207,13 @@ ipcMain.on("GET_ALL_FOLDER", async (event, payload) => {
             });
 
       } catch (error) {
-            logger.error("getAllFolderChannel: Failed getting all folder from local database: \n" + error);
+
+            if(typeof error === "object"){
+                  logger.error("getAllFolderChannel: Failed getting all folder from local database: \n" + JSON.stringify(error));
+            } else {
+                  logger.error("getAllFolderChannel: Failed getting all folder from local database: \n" + error);
+            }
+
             event.reply("GET_ALL_FOLDER", { result: "error", reason: error });
       }
 
@@ -220,7 +238,13 @@ ipcMain.on("DELETE_FOLDER", async (event, payload) => {
                   logger.info("deleteFolderChannel: Successful delete folder path in local database, id: " + payload._id);
                   event.reply("DELETE_FOLDER", { result: "success" });
             } catch (error) {
-                  logger.error("deleteFolderChannel: Failed delete folder in local database, id: " + payload._id + "\n" + JSON.stringify(error));
+
+                  if(typeof error === "object"){
+                        logger.error("deleteFolderChannel: Failed delete folder in local database, id: " + payload._id + "\n" + JSON.stringify(error));
+                  } else {
+                        logger.error("deleteFolderChannel: Failed delete folder in local database, id: " + payload._id + "\n" + error);
+                  }
+                  
                   event.reply("DELETE_FOLDER", { result: "error", code: 2, reason: error });
             }
       }
@@ -251,7 +275,13 @@ ipcMain.on("INSERT_NEW_DEFECT", async (event, payload) => {
                         event.reply("INSERT_NEW_DEFECT", { result: "success", });
                   }
             } catch (error) {
-                  logger.error("insertNewDefectChannel: Failed inserting new defect category into local database: \n" + JSON.stringify(error));
+
+                  if(typeof error === "object"){
+                        logger.error("insertNewDefectChannel: Failed inserting new defect category into local database: \n" + JSON.stringify(error));
+                  } else {
+                        logger.error("insertNewDefectChannel: Failed inserting new defect category into local database: \n" + error);
+                  }
+                  
                   event.reply("INSERT_NEW_DEFECT", { result: "error", reason: error });
             }
 
@@ -286,7 +316,13 @@ ipcMain.on("GET_ALL_DEFECT", async (event, payload) => {
             });
 
       } catch (error) {
-            logger.error("getAllDefectChannel: Failed getting defect categories from local database: \n" + error);
+
+            if(typeof error === "object"){
+                  logger.error("getAllDefectChannel: Failed getting defect categories from local database: \n" + JSON.stringify(error));
+            } else {
+                  logger.error("getAllDefectChannel: Failed getting defect categories from local database: \n" + error);
+            }
+            
             event.reply("GET_ALL_DEFECT", { result: "error", reason: error });
       }
 
@@ -311,7 +347,13 @@ ipcMain.on("DELETE_DEFECT", async (event, payload) => {
                   logger.info("deleteDefectChannel: Successful delete defect category in local database, id: " + payload._id);
                   event.reply("DELETE_DEFECT", { result: "success" });
             } catch (error) {
-                  logger.error("deleteDefectChannel: Failed delete defect category in local database, id: " + payload._id + "\n" + JSON.stringify(error));
+                  
+                  if(typeof error === "object"){
+                        logger.error("deleteDefectChannel: Failed delete defect category in local database, id: " + payload._id + "\n" + JSON.stringify(error));
+                  } else {
+                        logger.error("deleteDefectChannel: Failed delete defect category in local database, id: " + payload._id + "\n" + error);
+                  }
+
                   event.reply("DELETE_FOLDER", { result: "error", code: 2, reason: error })
             }
 
@@ -357,7 +399,13 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
                         var checkResult = await folderDatabase.checkFolderDatabaseAndFolder(getResult.item[0].path, true);
                         var updateResult = await folderDatabase.updateFolderDatabaseChecksum(getResult.item[0]._id, checkResult.databaseChecksum);
                   } else {
-                        logger.error("getImagesChannel: Failed getting all images failed. Reason: " + JSON.stringify(error));
+
+                        if(typeof error === "object"){
+                              logger.error("getImagesChannel: Failed getting all images failed. Reason: " + JSON.stringify(error));
+                        } else {
+                              logger.error("getImagesChannel: Failed getting all images failed. Reason: " + error);
+                        }
+
                         event.reply("GET_IMAGES", { result: "error", code: 3, reason: JSON.stringify(error) });
                   }
 
@@ -416,7 +464,14 @@ ipcMain.on("UPDATE_IMAGE_STATUS", async (event, payload) => {
                   
 
             } catch (error) {
-                  logger.error("updateImageStatusChannel: Failed updating image status. \n" + JSON.stringify(error));
+
+                  if(typeof error === "object"){
+                        logger.error("updateImageStatusChannel: Failed updating image status. \n" + JSON.stringify(error));
+                  } else {
+                        logger.error("updateImageStatusChannel: Failed updating image status. \n" + error);
+                  }
+
+                  event.reply("UPDATE_IMAGE_STATUS", { result: "error", code: 2, reason: error });
             }
 
       }
