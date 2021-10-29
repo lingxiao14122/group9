@@ -87,7 +87,7 @@
 
     <!-- Modal fail percent start -->
 
-    <b-modal id="modal-fail-percent" title="Fail Percentage">
+    <b-modal id="modal-fail-percent" title="Fail Percentage" hide-footer>
       <p v-html="modalFailContent"></p>
     </b-modal>
 
@@ -128,7 +128,7 @@ export default {
       showModal: false,
       isDefectNotEmpty: false,
       // Fail Content Modal state
-      modalFailContent: '',
+      modalFailContent: '<p> defect_1: 10% </p> <p> defect_2: 90% </p> <p> content </p> <p> content </p> <p> content </p>',
       //example of defectOptions
       // [
       //   { text: "Orange", value: "orange" },
@@ -307,7 +307,6 @@ export default {
     },
   },
   mounted() {
-    this.modalFailContent = '<p> defect_1: 10% </p> <p> defect_2: 90% </p> <p> content </p> <p> content </p> <p> content </p> '
     window.ipc.on("CHECK_IMAGE_AVAILABILITY", (payload) => {
       if (payload.result == "error") {
         if (payload.code == 1) {
