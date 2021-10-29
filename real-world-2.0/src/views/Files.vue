@@ -12,13 +12,10 @@
         <!-- NOW TABLE DISPLAYING is for debug only! not a feature! -->
         <h5>NOW TABLE DISPLAYING: {{ tableIsDisplaying }}</h5>
 
-        <button
-          type="button"
-          class="btn btn-primary btn-lg mt-2"
-          @click="refresh_btn_clicked"
-        >
-          Refresh
-        </button>
+        <div class="d-flex mt-2">
+          <button type="button" class="btn btn-primary" @click="clickRefresh">Refresh</button>
+          <button type="button" class="btn btn-primary ml-2" @click="toast('open in explorer!')">Open In Explorer</button>
+        </div>
       </div>
     </div>
 
@@ -132,7 +129,7 @@ export default {
     },
   },
   methods: {
-    refresh_btn_clicked() {
+    clickRefresh() {
       window.ipc.send("GET_IMAGES", { folder_id: this.folder_id });
     },
     clickHandler(tablerow, index) {
@@ -147,15 +144,15 @@ export default {
         });
       } else {
         let items = this.allItems;
-        let index = items.findIndex(x => x._id === tablerow._id);
-        
+        let index = items.findIndex((x) => x._id === tablerow._id);
+
         this.$router.push({
           name: "Segregation",
           params: {
             folder_id: this.folder_id,
             index: index,
             items: this.allItems,
-          }
+          },
         });
       }
     },
@@ -275,20 +272,11 @@ export default {
         this.failedItems = [];
 
         if (payload.code == 1) {
-          this.toast(
-            "Failed getting folder images info. Reason: " +
-              payload.reason +
-              " " +
-              payload.solution,
-            "error"
-          );
+          this.toast("Failed getting folder images info. Reason: " + payload.reason + " " + payload.solution, "error");
           this.toast("Getting folder images info again.");
           window.ipc.send("GET_IMAGES", { folder_id: this.folder_id });
         } else if (payload.code == 2) {
-          this.toast(
-            "Failed getting folder images info. Reason: " + payload.reason,
-            "error"
-          );
+          this.toast("Failed getting folder images info. Reason: " + payload.reason, "error");
         } else {
           this.toast("Failed getting folder images info.", "error");
         }

@@ -3,6 +3,7 @@
     <div class="container">
       <div class="btn-back d-flex mx-5">
         <b-button class="btn mt-3" @click="returnToFiles">Return</b-button>
+        <b-button class="btn mt-3 ml-2" @click="$bvModal.show('modal-fail-percent')">Fail Percentage</b-button>
       </div>
 
       <!-- Info bar start -->
@@ -14,14 +15,14 @@
         </div>
 
         <div class="infobar-below d-flex justify-content-between">
-          <h5>Status: {{transformStatusToString(items[currentImageIndex].status)}}</h5>
+          <h5>Status: {{ transformStatusToString(items[currentImageIndex].status) }}</h5>
           <h5>
             All: {{ items.length }}, Pending: {{ count.pending }}, Pass: {{ count.passed }}, Failed: {{ count.failed }}
           </h5>
         </div>
 
         <div class="infobar-below d-flex justify-content-between">
-          <h5>Defect Category: {{getImageDefectsString()}}</h5>
+          <h5>Defect Category: {{ getImageDefectsString() }}</h5>
         </div>
       </div>
 
@@ -84,6 +85,13 @@
     </div>
     <!-- Modal form end -->
 
+    <!-- Modal fail percent start -->
+
+    <b-modal id="modal-fail-percent" title="Fail Percentage">
+      <p v-html="modalFailContent"></p>
+    </b-modal>
+
+    <!-- Mpdal fail percent fail -->
   </div>
 </template>
 
@@ -119,6 +127,8 @@ export default {
       // Defect Modal state
       showModal: false,
       isDefectNotEmpty: false,
+      // Fail Content Modal state
+      modalFailContent: '',
       //example of defectOptions
       // [
       //   { text: "Orange", value: "orange" },
@@ -158,17 +168,16 @@ export default {
     checkImageAvailablity(direction) {
       var nextIndex = this.currentImageIndex + direction;
 
-      if(nextIndex < 0){
+      if (nextIndex < 0) {
         this.toast("No image at front.", "error");
-      } else if(nextIndex === this.items.length){
+      } else if (nextIndex === this.items.length) {
         this.toast("No image at end.", "error");
-      }else {
+      } else {
         window.ipc.send("CHECK_IMAGE_AVAILABILITY", {
-        direction: direction,
-        image: this.items[nextIndex],
-      });
+          direction: direction,
+          image: this.items[nextIndex],
+        });
       }
-
     },
     //purpose of this function is just to modify this.currentImage state only
     loadNextImage(iamgeExist, direction) {
@@ -180,7 +189,7 @@ export default {
         //direction 0 no move, direction 1 forward, direction -1 previous
         this.currentImageIndex = this.currentImageIndex + direction;
 
-        if(iamgeExist){
+        if (iamgeExist) {
           this.currentImage = this.items[this.currentImageIndex].path;
         } else {
           this.currentImage = this.brokenImage;
@@ -215,10 +224,10 @@ export default {
         this.count.failed = 0;
       }
     },
-    passBtnClicked(){
+    passBtnClicked() {
       this.sendIpcAndUpdateImageStatus(0);
     },
-    showingModel(){
+    showingModel() {
       this.showModal = true;
       window.ipc.send("GET_ALL_DEFECT", {});
     },
@@ -226,10 +235,10 @@ export default {
       // when ok button on modal is clicked
       this.sendIpcAndUpdateImageStatus(1);
     },
-    //if status = 0 means image pass, status = 1 means image failed, 
-    sendIpcAndUpdateImageStatus(status){
+    //if status = 0 means image pass, status = 1 means image failed,
+    sendIpcAndUpdateImageStatus(status) {
       var request;
-      switch(status){
+      switch (status) {
         case 0: {
           request = {
             folder_id: this.folder_id,
@@ -238,7 +247,7 @@ export default {
             image_status: {
               status: 1,
               defects: [],
-            }
+            },
           };
           window.ipc.send("UPDATE_IMAGE_STATUS", request);
           break;
@@ -251,7 +260,7 @@ export default {
             image_status: {
               status: 2,
               defects: this.defectSelected,
-            }
+            },
           };
           window.ipc.send("UPDATE_IMAGE_STATUS", request);
           break;
@@ -267,7 +276,6 @@ export default {
       });
     },
     transformStatusToString(data) {
-
       if (data === 0) {
         return "Pending";
       }
@@ -280,14 +288,14 @@ export default {
 
       return "err_no_status";
     },
-    getImageDefectsString(){
-      if(this.items[this.currentImageIndex].status == 2){
+    getImageDefectsString() {
+      if (this.items[this.currentImageIndex].status == 2) {
         var defectList = this.items[this.currentImageIndex].defects;
         var defectString = "";
 
-        for(var i = 0; i < defectList.length; i++){
+        for (var i = 0; i < defectList.length; i++) {
           defectString = defectString + defectList[i].defect_name;
-          if(i < defectList.length - 1){
+          if (i < defectList.length - 1) {
             defectString = defectString + ", ";
           }
         }
@@ -296,9 +304,10 @@ export default {
       } else {
         return "-";
       }
-    }
+    },
   },
   mounted() {
+    this.modalFailContent = '<p> defect_1: 10% </p> <p> defect_2: 90% </p> <p> content </p> <p> content </p> <p> content </p> '
     window.ipc.on("CHECK_IMAGE_AVAILABILITY", (payload) => {
       if (payload.result == "error") {
         if (payload.code == 1) {
@@ -319,12 +328,11 @@ export default {
     });
 
     window.ipc.on("GET_ALL_DEFECT", (payload) => {
-      if(payload.result == "error"){
+      if (payload.result == "error") {
         this.toast("Failed getting all defect categories.", "error");
         this.isDefectNotEmpty = true;
       } else {
-
-        if(payload.items.length == 0){
+        if (payload.items.length == 0) {
           this.isDefectNotEmpty = true;
         } else {
           this.isDefectNotEmpty = false;
@@ -332,7 +340,7 @@ export default {
 
         var defects = [];
 
-        for(var i = 0; i < payload.items.length; i++){
+        for (var i = 0; i < payload.items.length; i++) {
           defects.push({ text: payload.items[i].name, value: payload.items[i]._id });
         }
 
@@ -341,14 +349,14 @@ export default {
     });
 
     window.ipc.on("UPDATE_IMAGE_STATUS", (payload) => {
-      if(payload.result == "success"){
+      if (payload.result == "success") {
         this.items[this.currentImageIndex].status = payload.image_status.status;
-        if(payload.image_status.status == 2){
+        if (payload.image_status.status == 2) {
           this.items[this.currentImageIndex].defects = payload.image_status.defects;
         }
         this.updateCounting();
         this.checkImageAvailablity(1);
-      } else if(payload.result == "error"){
+      } else if (payload.result == "error") {
         this.toast("Failed updating current image status.", "error");
       }
     });

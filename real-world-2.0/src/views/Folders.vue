@@ -7,7 +7,7 @@
           <button
             type="button"
             class="btn btn-primary btn-lg mt-2"
-            @click="click_new_folder"
+            @click="clickNewFolder"
           >
             New Folder
           </button>
@@ -23,8 +23,11 @@
         @row-clicked="clickHandler"
       >
         <template #cell(action)="row">
-          <b-button size="sm" @click="click_detail_btn(row.index)">
+          <b-button size="sm" @click="clickDelete(row.index)">
             Delete
+          </b-button>
+          <b-button class="ml-2" size="sm" @click="clickOpenExplorer">
+            Open In Explorer
           </b-button>
         </template>
       </b-table>
@@ -47,14 +50,17 @@ export default {
     };
   },
   methods: {
-    click_new_folder() {
+    clickNewFolder() {
       this.overlayBlocking();
       window.ipc.send("READ_FOLDER_PATH", {});
     },
-    click_detail_btn(index) {
+    clickDelete(index) {
       if (confirm("Are you sure want to delete this folder?")) {
         window.ipc.send("DELETE_FOLDER", { _id: this.items[index]._id });
       }
+    },
+    clickOpenExplorer() {
+      console.log("button Open In Explorer clicked!")
     },
     clickHandler(tablerow) {
       this.$router.push({
