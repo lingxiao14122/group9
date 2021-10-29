@@ -16,7 +16,7 @@
         <div class="infobar-below d-flex justify-content-between">
           <h5>Status: {{transformStatusToString(items[currentImageIndex].status)}}</h5>
           <h5>
-            All: {{ items.length }} Pending: {{ count.pending }}, Pass: {{ count.passed }}, Failed: {{ count.failed }}
+            All: {{ items.length }}, Pending: {{ count.pending }}, Pass: {{ count.passed }}, Failed: {{ count.failed }}
           </h5>
         </div>
 
