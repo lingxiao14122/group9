@@ -22,12 +22,17 @@
         :fields="fields"
         @row-clicked="clickHandler"
       >
+        <template #cell(exist)="row">
+          <b-icon-exclamation-triangle-fill v-if="!row.item.exist" variant="warning" v-b-tooltip.hover title="Folder not exist."></b-icon-exclamation-triangle-fill>
+        </template>
         <template #cell(action)="row">
           <b-button size="sm" @click="clickDelete(row.index)">
             Delete
+            <b-icon-trash></b-icon-trash>
           </b-button>
           <b-button class="ml-2" size="sm" @click="clickOpenExplorer">
             Open In Explorer
+            <b-icon-folder-symlink></b-icon-folder-symlink>
           </b-button>
         </template>
       </b-table>
@@ -40,6 +45,7 @@ export default {
   data() {
     return {
       fields: [
+        { key: "exist", label: "" },
         { key: "name", label: "Folder Name" },
         { key: "path", label: "Folder Path" },
         { key: "date_created", label: "Date Created" },
@@ -60,15 +66,19 @@ export default {
       }
     },
     clickOpenExplorer() {
-      console.log("button Open In Explorer clicked!")
+      console.log("button Open In Explorer clicked!");
     },
     clickHandler(tablerow) {
-      this.$router.push({
-        name: "Files",
-        params: {
-          folder_id: tablerow._id,
-        },
-      });
+      if(tablerow.exist){
+        this.$router.push({
+          name: "Files",
+          params: {
+            folder_id: tablerow._id,
+          },
+        });
+      } else {
+        this.toast("The folder are not exist!", "error");
+      }
     },
     overlayBlocking() {
       this.showLoading = !this.showLoading;

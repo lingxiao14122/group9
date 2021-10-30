@@ -48,24 +48,34 @@ function getCurrentDateTime() {
 function checkFolderDatabaseAndFolder(folderPath) {
 
       return new Promise(async (resolve, reject) => {
-            logger.info("checkFolderDatabaseAndFolder: Creating folder database and creating necessary folders. Path: " + folderPath);
+            logger.info("checkFolderDatabaseAndFolder: Checking folder database and necessary folders. Path: " + folderPath);
 
             if (!fs.existsSync(path.join(folderPath, "./appdata"))) {
+                  logger.info("checkFolderDatabaseAndFolder: appdata folder not exist, creating directory...");
                   fs.mkdirSync(path.join(folderPath, "./appdata"));
+                  logger.info("checkFolderDatabaseAndFolder: Successful create appdata folder");
             }
 
-            var result = await database.createDatabase(1, path.join(folderPath, "./appdata/" + databaseName));
+            if(!fs.existsSync(path.join(folderPath, "./appdata/" + databaseName))){
+                  logger.info("checkFolderDatabaseAndFolder: database.sqlite are not exist in appdata folder, creating database...");
+                  var result = await database.createDatabase(1, path.join(folderPath, "./appdata/" + databaseName));
+                  logger.info("checkFolderDatabaseAndFolder: Successful create database.sqlite in appdata folder");
+            }
 
             if (!fs.existsSync(path.join(folderPath, "./passed"))) {
+                  logger.info("checkFolderDatabaseAndFolder: passed folder not exist, creating directory...");
                   fs.mkdirSync(path.join(folderPath, "./passed"));
+                  logger.info("checkFolderDatabaseAndFolder: Successful create passed folder");
             }
 
             if (!fs.existsSync(path.join(folderPath, "./failed"))) {
+                  logger.info("checkFolderDatabaseAndFolder: failed folder not exist, creating directory...");
                   fs.mkdirSync(path.join(folderPath, "./failed"));
+                  logger.info("checkFolderDatabaseAndFolder: Successful create failed folder");
             }
 
             resolve({ result: "success" });
-            logger.info("checkFolderDatabaseAndFolder: Finish create folder database and creating necessary folders. Path: " + folderPath);
+            logger.info("checkFolderDatabaseAndFolder: Successful check folder database and necessary folders. Path: " + folderPath);
       });
 
 }
@@ -73,7 +83,7 @@ function checkFolderDatabaseAndFolder(folderPath) {
 function scanFolderImages(folderPath) {
 
       return new Promise((resolve, reject) => {
-            logger.info("scanFolderImages: initializing images scanning and verify integrity of database. Folder path: " + folderPath);
+            logger.info("scanFolderImages: Initializing images scanning and verify integrity of database. Folder path: " + folderPath);
             var databasePath = path.join(folderPath, "./appdata/" + databaseName);
             var databaseBuffer, buffer;
 
@@ -84,7 +94,7 @@ function scanFolderImages(folderPath) {
                         const db = new SQL.Database(databaseBuffer);
                         var statement = db.prepare(selectAllImagesFolderDb);
 
-                        logger.info("scanFolderImages: deleting folder database images record not in folder.");
+                        logger.info("scanFolderImages: Deleting folder database images record not in folder...");
 
                         while (statement.step()) {
                               var imageInfo = statement.getAsObject();
@@ -108,14 +118,14 @@ function scanFolderImages(folderPath) {
                                     }
 
                                     db.run("DELETE FROM images WHERE _id = " + imageInfo._id + "; DELETE FROM image_defects WHERE image_id = " + imageInfo._id + ";");
-                                    logger.info("scanFolderImages: Image not exist in folder, deleted folder database, image record. Name: " + imageInfo.name);
+                                    logger.info("scanFolderImages: Image not exist in folder, deleted folder database image record. Name: " + imageInfo.name);
                               } else {
-                                    logger.info("scanFolderImages: Image exist in folder and folder database, ignore delete folder database, image record. Name: " + imageInfo.name);
+                                    logger.info("scanFolderImages: Image exist in folder and folder database, ignore delete folder database image record. Name: " + imageInfo.name);
                               }
                         }
 
-                        logger.info("scanFolderImages: finish deleting folder database images record not in folder.");
-                        logger.info("scanFolderImages: inserting new images info into folder database.");
+                        logger.info("scanFolderImages: Finish deleting folder database images record not in folder");
+                        logger.info("scanFolderImages: Inserting new images info into folder database...");
 
                         fs.readdirSync(folderPath).forEach(file => {
                               statement.reset();
@@ -131,22 +141,76 @@ function scanFolderImages(folderPath) {
                                           } else {
                                                 logger.info("scanFolderImages: Image exist in folder and folder database, ignore insert images into folder database, image name: " + file);
                                           }
+
+                                          statement.reset();
                                     }
 
                               }
                         });
 
+                        logger.info("scanFolderImages: Finish inserting new images info into folder database");
+                        
+                        if(fs.readdirSync(path.join(folderPath, "./passed")).length !== 0){
+                              logger.info("scanFolderImages: Updating passed images info from passed folder into folder database...");
+
+                              fs.readdirSync(path.join(folderPath, "./passed")).forEach(file => {
+                                    db.run("UPDATE images SET status = " + imageStatus.passed + " WHERE name = '" + file + "';");
+                                    logger.info("scanFolderImages: Image detected in passed folder, updated image info, image name: " + file);
+                              });
+                              
+                              logger.info("scanFolderImages: Finish updating passed images info from passed folder info into folder database");
+                        }
+
+                        if(fs.readdirSync(path.join(folderPath, "./failed")).length !== 0){
+                              logger.info("scanFolderImages: Updating failed images info from failed folder into folder database...");
+                              var newDefects = [];
+
+                              fs.readdirSync(path.join(folderPath, "./failed")).forEach(file => {
+                                    var stats = fs.statSync(path.join(folderPath, "./failed/" + file));
+                                    if(stats.isDirectory()){
+                                          newDefects.push(file);
+
+                                          fs.readdirSync(path.join(folderPath, "./failed/" + file)).forEach(file1 => {
+                                                var statement = db.prepare("SELECT * FROM images WHERE name = '" + file1 + "' LIMIT 1;");
+                                                statement.step();
+                                                var imageInfo = statement.getAsObject();
+
+                                                db.run("UPDATE images SET status = " + imageStatus.failed + " WHERE name = '" + file1 + "';");
+
+                                                var defectStatement = db.prepare("SELECT COUNT(_id) as count FROM image_defects WHERE image_id = " + imageInfo._id + " AND defect_name = '" + file + "';");
+                                                defectStatement.step();
+
+                                                if(defectStatement.getAsObject().count === 0){
+                                                      db.run("INSERT INTO image_defects (image_id, defect_name) VALUES (" + imageInfo._id + ", '" + file + "');");
+                                                      logger.info("scanFolderImages: Image detected in ./failed/" + file + " folder, updating image info image name: " + file1);
+                                                } else {
+                                                      logger.info("scanFolderImages: Image detected in ./failed/" + file + " folder but already exist in database, image name: " + file1);
+                                                }
+
+                                                defectStatement.reset();
+                                                statement.reset();
+                                          });
+
+                                    } else {
+                                          logger.warn("scanFolderImages: Inside failed directory no allow file exist, ignoring file name: " + file);
+                                    }
+                                    
+                              });
+
+                              logger.info("scanFolderImages: Finish updating failed images info from failed folder into folder database...");
+                        }
+
                         buffer = new Buffer(db.export());
                         fs.writeFileSync(databasePath, buffer);
-                        logger.info("scanFolderImages: finish inserting new images info into folder database.");
+                        
                         statement.reset();
                         db.close();
 
                         
-                        resolve({ result: "success" });
+                        resolve({ result: "success", newDefects: newDefects });
                   });
             } catch (error) {
-                  logger.error("scanFolderImages: failed initializing images scanning and verify integrity of database. Folder path: " + folderPath + "\n" + error);
+                  logger.error("scanFolderImages: Failed initializing images scanning and verify integrity of database. Folder path: " + folderPath + "\n" + error);
                   reject({ result: "error", reason: error });
             }
       });

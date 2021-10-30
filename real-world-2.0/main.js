@@ -150,6 +150,10 @@ ipcMain.on("GET_ALL_FOLDER", async (event, payload) => {
 
                   while (statement.step()) {
                         var row = statement.getAsObject();
+
+                        var exist = fs.existsSync(row.path);
+                        row.exist = exist;
+
                         result.push(row);
                   }
 
@@ -323,7 +327,14 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
                   var getResult = await localDatabase.getFolderInfoFromLocalDB(payload.folder_id);
 
                   if(getResult.result === "success"){
+                        var checkResult = await folderDatabase.checkFolderDatabaseAndFolder(getResult.item[0].path);
                         var scanResult = await folderDatabase.scanFolderImages(getResult.item[0].path);
+                        console.log(scanResult);
+
+                        if(scanResult.newDefects.length !== 0){
+                              logger.info("getImagesChannel: New defect categories detected while scanning images, inserting into local database...");
+                              var insertResult = await localDatabase.insertLocalDatabaseDefectWithList(scanResult.newDefects);
+                        }
 
                         if(scanResult.result === "success"){
                               var imagesResult = await folderDatabase.getAllImages(getResult.item[0].path);
@@ -406,7 +417,7 @@ ipcMain.on("UPDATE_IMAGE_STATUS", async (event, payload) => {
                         status: payload.image_status.status,
                         defects: [],
                   };
-                  
+
                   if(payload.image_status.status === 2){
                         var getDefectsResult = await folderDatabase.getImageDefects(getFolderResult.item[0].path, payload.image_id);
                         result.defects = getDefectsResult.items;
@@ -432,5 +443,10 @@ ipcMain.on("UPDATE_IMAGE_STATUS", async (event, payload) => {
 });
 
 ipcMain.on("TEST", (event, payload) => {
+      logger.info("testChannel: Testing channel listened.");
 
+      console.log(fs.readdirSync(path.join(payload.item.path, "./failed")).length);
+      fs.readdirSync(path.join(payload.item.path, "./failed")).forEach(file => {
+            console.log(file);
+      });
 });

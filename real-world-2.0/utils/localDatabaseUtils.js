@@ -95,6 +95,49 @@ function insertLocalDatabaseDefect(databasePath, databaseBuffer, defectName){
 
 }
 
+function insertLocalDatabaseDefectWithList(defectList = []){
+
+      return new Promise((resolve, reject) => {
+            logger.info("insertLocalDatabaseDefectQuick: inserting local database with defect list: " + defectList);
+            var databasePath = path.join(path.dirname(app.getPath("exe")), "./" + databaseName);
+            var databaseBuffer, buffer;
+            var currentDate = getCurrentDateTime();
+
+            try {
+                  databaseBuffer = fs.readFileSync(databasePath);
+
+                  initSqlJs().then((SQL) => {
+                        const db = new SQL.Database(databaseBuffer);
+
+                        for(var i = 0; i < defectList.length; i++){
+                              var statement = db.prepare("SELECT COUNT(_id) AS count FROM defect_category WHERE name = '" + defectList[i] + "' AND soft_delete = 0;");
+                              statement.step();
+
+                              if(statement.getAsObject().count === 0){
+                                    db.run("INSERT INTO defect_category (name, date_created, soft_delete) \
+                                          VALUES ('" + defectList[i] + "', '" + currentDate + "', 0);");
+                              }
+
+                              statement.reset();
+                        }
+
+                        buffer = new Buffer(db.export());
+                        fs.writeFileSync(databasePath, buffer);
+                        db.close();
+
+                        logger.info("insertLocalDatabaseDefect: Successful insert local database with defect name: " + defectList);
+                        resolve({ result: "success" });
+
+                  });
+            } catch(error) {
+                  logger.error("insertLocalDatabaseDefectQuick: Failed insert local database with defect name: " + defectList);
+                  reject({ result: "error", reason: error });
+            }
+
+      });
+
+}
+
 function deleteLocalDatabaseFolder(databasePath, databaseBuffer, folderId) {
 
       return new Promise((resolve, reject) => {
@@ -215,6 +258,7 @@ module.exports = localDatabase = {
       selectAllDefectLocalDb: selectAllDefectLocalDb,
       insertLocalDatabaseFolder,
       insertLocalDatabaseDefect,
+      insertLocalDatabaseDefectWithList,
       deleteLocalDatabaseFolder,
       deleteLocalDatabaseDefect,
       getFolderInfoFromLocalDB,
