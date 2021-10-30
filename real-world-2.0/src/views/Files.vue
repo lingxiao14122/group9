@@ -14,7 +14,6 @@
 
         <div class="d-flex mt-2">
           <button type="button" class="btn btn-primary" @click="clickRefresh">Refresh</button>
-          <button type="button" class="btn btn-primary ml-2" @click="toast('open in explorer!')">Open In Explorer</button>
         </div>
       </div>
     </div>
@@ -73,8 +72,8 @@
           {{ getImageDefectsString(data) }}
         </template>
 
-        <template #cell(action)>
-          <b-button size="sm" @click="clickOpenExplorer">
+        <template #cell(action)="row">
+          <b-button size="sm" @click="clickOpenExplorer(row)">
             <b-icon-folder-symlink></b-icon-folder-symlink>
           </b-button>
         </template>
@@ -95,17 +94,20 @@ export default {
       defaultFields: [
         { key: "name", label: "Image Name" },
         { key: "date_created", label: "Date Created" },
+        "action",
       ],
       allFields: [
         { key: "name", label: "Image Name" },
         { key: "status", label: "Status" },
         { key: "defects", label: "Defect Categories" },
         { key: "date_created", label: "Date Created" },
+        "action",
       ],
       failedFields: [
         { key: "name", label: "Image Name" },
         { key: "defects", label: "Defect Categories" },
         { key: "date_created", label: "Date Created" },
+        "action",
       ],
       items: [],
       allItems: [],
@@ -163,8 +165,9 @@ export default {
         });
       }
     },
-    clickOpenExplorer() {
-      console.log("files.vue action column delete button clicked!")
+    clickOpenExplorer(row) {
+      console.log(row);
+      window.ipc.send("REVEAL_FOLDER_IN_EXPLORER", { path: row.item.path });
     },
     tabClicked: function (tabname) {
       this.tableIsDisplaying = tabname;
@@ -293,10 +296,16 @@ export default {
       }
     });
 
+    window.ipc.on("REVEAL_FOLDER_IN_EXPLORER", (payload) => {
+      if(payload.result == "error"){
+        this.toast("Failed revealing file in explorer. Reason: " + payload.reason);
+      }
+    });
+
     window.ipc.send("GET_IMAGES", { folder_id: this.folder_id });
   },
   beforeDestroy() {
-    let activeChannel = ["GET_IMAGES"];
+    let activeChannel = ["GET_IMAGES", "REVEAL_FOLDER_IN_EXPLORER"];
     window.ipc.removeAllListeners(activeChannel);
   },
 };

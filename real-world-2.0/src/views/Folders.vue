@@ -29,7 +29,7 @@
           <b-button size="sm" @click="clickDelete(row.index)">
             <b-icon-trash></b-icon-trash>
           </b-button>
-          <b-button class="ml-2" size="sm" @click="clickOpenExplorer">
+          <b-button class="ml-2" size="sm" @click="clickOpenExplorer(row.item)">
             <b-icon-folder-symlink></b-icon-folder-symlink>
           </b-button>
         </template>
@@ -63,8 +63,12 @@ export default {
         window.ipc.send("DELETE_FOLDER", { _id: this.items[index]._id });
       }
     },
-    clickOpenExplorer() {
-      console.log("button Open In Explorer clicked!");
+    clickOpenExplorer(item) {
+      if(item.exist){
+        window.ipc.send("REVEAL_FOLDER_IN_EXPLORER", { path: item.path });
+      } else {
+        this.toast("The folder are not exist.", "error");
+      }
     },
     clickHandler(tablerow) {
       if(tablerow.exist){
@@ -75,7 +79,7 @@ export default {
           },
         });
       } else {
-        this.toast("The folder are not exist!", "error");
+        this.toast("The folder are not exist.", "error");
       }
     },
     overlayBlocking() {
@@ -121,10 +125,16 @@ export default {
       window.ipc.send("GET_ALL_FOLDER", {});
     });
 
+    window.ipc.on("REVEAL_FOLDER_IN_EXPLORER", (payload) => {
+      if(payload.result == "error"){
+        this.toast("Failed revealing folder in explorer. Reason: " + payload.reason);
+      }
+    });
+
     window.ipc.send("GET_ALL_FOLDER", {});
   },
   beforeDestroy() {
-    let activeChannel = ["READ_FOLDER_PATH", "GET_ALL_FOLDER", "DELETE_FOLDER"];
+    let activeChannel = ["READ_FOLDER_PATH", "GET_ALL_FOLDER", "DELETE_FOLDER", "REVEAL_FOLDER_IN_EXPLORER"];
     window.ipc.removeAllListeners(activeChannel);
   },
 };

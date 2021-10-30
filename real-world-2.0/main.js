@@ -211,15 +211,24 @@ ipcMain.on("REVEAL_FOLDER_IN_EXPLORER", (event, payload) => {
 
       if(payload.path === undefined || payload.path === null || Number.isNaN(payload.path)){
             logger.error("revealFolderInExplorer: Failed revealing folder in explorer. Reason: unknown folder path");
+            event.reply("REVEAL_FOLDER_IN_EXPLORER", { result: "error", code: 1, reason: "Unknown folder path" });
       } else {
             logger.info("revealFolderInExplorer: Revealing folder path " + payload.path + " in explorer...");
-            console.log(payload);
-            var stats = fs.statSync(payload.path);
 
-            if(stats.isDirectory()){
-                  shell.openPath(payload.path);
+            if(!fs.existsSync(payload.path)){
+                  logger.error("revealFolderInExplorer: Failed revealing folder in explorer. Reason: folder path not exist");
+                  event.reply("REVEAL_FOLDER_IN_EXPLORER", { result: "error", code: 1, reason: "Folder path not exist." });
             } else {
-                  shell.showItemInFolder(payload.path);
+                  var stats = fs.statSync(payload.path);
+
+                  if(stats.isDirectory()){
+                        shell.openPath(payload.path);
+                  } else {
+                        shell.showItemInFolder(payload.path);
+                  }
+
+                  logger.info("revealFolderInExplorer: Successful reveal folder in explorer");
+                  event.reply("REVEAL_FOLDER_IN_EXPLORER", { result: "success" });
             }
             
       }
