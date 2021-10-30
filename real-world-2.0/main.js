@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 
 const url = require("url");
 const path = require("path");
@@ -203,6 +203,25 @@ ipcMain.on("DELETE_FOLDER", async (event, payload) => {
                   
                   event.reply("DELETE_FOLDER", { result: "error", code: 2, reason: error });
             }
+      }
+
+});
+
+ipcMain.on("REVEAL_FOLDER_IN_EXPLORER", (event, payload) => {
+
+      if(payload.path === undefined || payload.path === null || Number.isNaN(payload.path)){
+            logger.error("revealFolderInExplorer: Failed revealing folder in explorer. Reason: unknown folder path");
+      } else {
+            logger.info("revealFolderInExplorer: Revealing folder path " + payload.path + " in explorer...");
+            console.log(payload);
+            var stats = fs.statSync(payload.path);
+
+            if(stats.isDirectory()){
+                  shell.openPath(payload.path);
+            } else {
+                  shell.showItemInFolder(payload.path);
+            }
+            
       }
 
 });
