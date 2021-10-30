@@ -185,8 +185,6 @@ function getAllImages(folderPath) {
 
                         db.close();
 
-                        console.log(JSON.stringify(result));
-
                         logger.info("getAllImages: got all images from folder database, folder path: " + folderPath);
                         resolve({ result: "success", items: result });
                   });
