@@ -3,40 +3,42 @@
     <div class="container">
       <div class="btn-back d-flex mx-5">
         <b-button class="btn mt-3" @click="returnToFiles">Return</b-button>
-        <b-button class="btn mt-3 ml-2" @click="$bvModal.show('modal-fail-percent')">Fail Percentage</b-button>
       </div>
 
       <!-- Info bar start -->
-
       <div class="infobar mx-5">
+        <!-- row 1 -->
         <div class="infobar-top d-flex align-items-end justify-content-between">
           <h5>Image Name: {{ items[currentImageIndex].name }}</h5>
           <h2>{{ currentImageIndex + 1 }}/{{ items.length }}</h2>
         </div>
-
+        <!-- row 2 -->
         <div class="infobar-below d-flex justify-content-between">
           <h5>Status: {{ transformStatusToString(items[currentImageIndex].status) }}</h5>
           <h5>
             All: {{ items.length }}, Pending: {{ count.pending }}, Pass: {{ count.passed }}, Failed: {{ count.failed }}
           </h5>
         </div>
-
+        <!-- row 3 -->
         <div class="infobar-below d-flex justify-content-between">
           <h5>Defect Category: {{ getImageDefectsString() }}</h5>
+          <div class="d-flex">
+            <h5>Pass: {{ "pass percent" }} Fail: {{ "fail percent" }} Pending: {{ "pending percent" }}</h5>
+            <b-button class="btn ml-2" size="sm" @click="$bvModal.show('modal-fail-percent')">
+              <b-icon-exclamation-circle-fill></b-icon-exclamation-circle-fill>
+            </b-button>
+          </div>
         </div>
       </div>
-
-      <!-- Info bar end -->
 
       <!-- Image start -->
       <div class="d-flex flex-column">
         <div class="d-flex justify-content-center bg-custom">
           <div class="image-wrapper">
-            <b-img :src="currentImage" class="c-image1" style="filter: brightness(0.5)"></b-img>
+            <b-img :src="currentImage" class="c-image1"></b-img>
           </div>
         </div>
       </div>
-      <!-- Image end -->
 
       <!-- Btn group start -->
       <div class="button-group mt-2 mx-5 d-flex align-self-end">
@@ -66,7 +68,6 @@
         </div>
       </div>
     </div>
-    <!-- Btn group end -->
 
     <!-- Modal form start -->
     <div class="appmodal">
@@ -83,15 +84,11 @@
         </b-form-group>
       </b-modal>
     </div>
-    <!-- Modal form end -->
 
     <!-- Modal fail percent start -->
-
     <b-modal id="modal-fail-percent" title="Fail Percentage" hide-footer>
       <p v-html="modalFailContent"></p>
     </b-modal>
-
-    <!-- Mpdal fail percent fail -->
   </div>
 </template>
 
@@ -127,8 +124,8 @@ export default {
       // Defect Modal state
       showModal: false,
       isDefectNotEmpty: false,
-      // Fail Content Modal state
-      modalFailContent: '<p> defect_1: 10% </p> <p> defect_2: 90% </p> <p> content </p> <p> content </p> <p> content </p>',
+      // Fail Percentage Modal state
+      modalFailContent: "defect_1: 10% <br/> defect_2: 90% <br/> content <br/> content <br/> content <br/>",
       //example of defectOptions
       // [
       //   { text: "Orange", value: "orange" },
