@@ -1,13 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const initSqlJs = require('sql.js/dist/sql-wasm');
 const logger = require('./logger');
 
 const databaseName = "database.sqlite";
 
 const createLocalDb = " \
-                        CREATE TABLE folder_location (_id INTEGER PRIMARY KEY, name TEXT, path TEXT, date_created TEXT, checksum TEXT, soft_delete INTEGER); \
+                        CREATE TABLE folder_location (_id INTEGER PRIMARY KEY, name TEXT, path TEXT, date_created TEXT, soft_delete INTEGER); \
                         CREATE TABLE defect_category (_id INTEGER PRIMARY KEY, name TEXT, date_created TEXT, soft_delete INTEGER); \
                         ";
 
@@ -53,7 +52,6 @@ function createDatabase(databaseType, databasePath) {
             var logDatabaseType = databaseType === 0 ? "local database" : "folder database";
             logger.info("createDatabase: Creating database type: " + logDatabaseType + "; path: " + databasePath);
             var buffer;
-            var checksum = crypto.createHash("sha256");
 
             initSqlJs().then((SQL) => {
                   const db = new SQL.Database();
@@ -69,9 +67,8 @@ function createDatabase(databaseType, databasePath) {
 
                   db.close();
 
-                  checksum.update(buffer);
                   logger.info("createDatabase: Created database type: " + logDatabaseType + " path: " + databasePath);
-                  resolve({ result: "success", checksum: checksum.digest("hex") });
+                  resolve({ result: "success" });
             });
 
       });

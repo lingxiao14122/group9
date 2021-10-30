@@ -2,13 +2,10 @@ const {app} = require('electron');
 const path = require("path");
 const fs = require('fs');
 
-const crypto = require('crypto');
-
 const logger = require("./logger");
 const initSqlJs = require('sql.js/dist/sql-wasm');
 
 const databaseName = "database.sqlite";
-const databaseChecksumName = "database_checksum.dat";
 
 const selectAllFolderLocalDb = " \
                         SELECT * FROM folder_location WHERE soft_delete = 0; \
@@ -31,7 +28,7 @@ function getCurrentDateTime() {
       return year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
 }
 
-function insertLocalDatabaseFolder(databasePath, databaseBuffer, folderName, folderPath, folderDbChecksum) {
+function insertLocalDatabaseFolder(databasePath, databaseBuffer, folderName, folderPath) {
 
       return new Promise((resolve, reject) => {
             logger.info("insertLocalDatabaseFolder: Inserting local database with folder path: " + folderPath);
@@ -45,8 +42,8 @@ function insertLocalDatabaseFolder(databasePath, databaseBuffer, folderName, fol
                   statement.step();
 
                   if(statement.getAsObject().count === 0){
-                        db.run("INSERT INTO folder_location (name, path, date_created, checksum, soft_delete) \
-                              VALUES ('" + folderName + "', '" + folderPath + "', '" + currentDate + "', '" + folderDbChecksum + "', 0);");
+                        db.run("INSERT INTO folder_location (name, path, date_created, soft_delete) \
+                              VALUES ('" + folderName + "', '" + folderPath + "', '" + currentDate + "', 0);");
 
                         buffer = new Buffer(db.export());
                         fs.writeFileSync(databasePath, buffer);
@@ -144,36 +141,6 @@ function deleteLocalDatabaseDefect(databasePath, databaseBuffer, defectId){
 
 }
 
-function updateLocalDatabaseChecksum(){
-
-      return new Promise((resolve, reject) => {
-
-            logger.info("updateLocalDatabaseChecksum: Changing new checksum value in " + databaseChecksumName);
-            var databasePath = path.join(path.dirname(app.getPath("exe")), "./" + databaseName);
-            
-            if(fs.existsSync(databasePath)){
-                  var databaseBuffer = fs.readFileSync(databasePath);
-                  var databaseChecksum = crypto.createHash("sha256");
-                  databaseChecksum.update(databaseBuffer);
-
-                  try {
-                        fs.writeFileSync(path.join(path.dirname(app.getPath("exe")), "./" + databaseChecksumName), databaseChecksum.digest("hex"));
-                        logger.info("updateLocalDatabaseChecksum: Success change new checksum value in " + databaseChecksumName);
-                        resolve({result: "success"});
-                  } catch (error) {
-                        logger.error("updateLocalDatabaseChecksum: Failed change new checksum value in " + databaseChecksumName + "\n" + JSON.stringify(error));
-                        reject({result: "error", reason: error});
-                  }
-
-            } else {
-                  logger.error("updateLocalDatabaseChecksum: Failed change new checksum value in " + databaseChecksumName + ". Reason: Database not exist.");
-                  reject({result: "error", reason: "Database not exist."});
-            }
-
-      });
-
-}
-
 function getFolderInfoFromLocalDB(folder_id) {
 
       return new Promise((resolve, reject) => {
@@ -244,14 +211,12 @@ function getAllDefectInfo(){
 }
 
 module.exports = localDatabase = {
-      databaseChecksumName: databaseChecksumName,
       selectAllFolderLocalDb: selectAllFolderLocalDb,
       selectAllDefectLocalDb: selectAllDefectLocalDb,
       insertLocalDatabaseFolder,
       insertLocalDatabaseDefect,
       deleteLocalDatabaseFolder,
       deleteLocalDatabaseDefect,
-      updateLocalDatabaseChecksum,
       getFolderInfoFromLocalDB,
       getAllDefectInfo,
 }

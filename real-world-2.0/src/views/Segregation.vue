@@ -181,6 +181,7 @@ export default {
     },
     //purpose of this function is just to modify this.currentImage state only
     loadNextImage(iamgeExist, direction) {
+      console.log("loadNextImage called");
       if (this.currentImageIndex === 0 && direction === -1) {
         this.toast("No image at front.", "error");
       } else if (this.currentImageIndex === this.items.length - 1 && direction === 1) {
@@ -291,6 +292,7 @@ export default {
     getImageDefectsString() {
       if (this.items[this.currentImageIndex].status == 2) {
         var defectList = this.items[this.currentImageIndex].defects;
+        console.log(defectList);
         var defectString = "";
 
         for (var i = 0; i < defectList.length; i++) {

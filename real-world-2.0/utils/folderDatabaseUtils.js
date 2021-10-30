@@ -1,7 +1,6 @@
 const {app} = require('electron');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const initSqlJs = require('sql.js/dist/sql-wasm');
 const logger = require('electron-log');
 
@@ -46,36 +45,6 @@ function getCurrentDateTime() {
       return year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
 }
 
-function updateFolderDatabaseChecksum(folderId, checksum) {
-
-      return new Promise((resolve, reject) => {
-            logger.info("updateFolderDatabaseChecksum: Changing new checksum value in database, folder_id: " + folderId);
-
-            var databasePath = path.join(path.dirname(app.getPath("exe")), "./" + databaseName);
-            var databaseBuffer, buffer;
-
-            try {
-                  databaseBuffer = fs.readFileSync(databasePath);
-
-                  initSqlJs().then((SQL) => {
-                        const db = new SQL.Database(databaseBuffer);
-                        db.run("UPDATE folder_location SET checksum = '" + checksum + "' WHERE _id = " + folderId + ";");
-
-                        buffer = new Buffer(db.export());
-                        fs.writeFileSync(databasePath, buffer);
-
-                        logger.info("updateFolderDatabaseChecksum: Successful change new checksum value in database, folder_id: " + folderId);
-                        resolve({ result: "success" });
-                  });
-            } catch (error) {
-                  logger.error("updateFolderDatabaseChecksum: Failed change new checksum value in database, folder_id: " + folderId + "\n" + error);
-                  reject({ result: "error", reason: error });
-            }
-
-      });
-
-}
-
 function checkFolderDatabaseAndFolder(folderPath) {
 
       return new Promise(async (resolve, reject) => {
@@ -95,38 +64,8 @@ function checkFolderDatabaseAndFolder(folderPath) {
                   fs.mkdirSync(path.join(folderPath, "./failed"));
             }
 
-            resolve({ result: "success", databaseChecksum: result.checksum });
+            resolve({ result: "success" });
             logger.info("checkFolderDatabaseAndFolder: Finish create folder database and creating necessary folders. Path: " + folderPath);
-      });
-
-}
-
-function checkFolderDbIntegrity(folderPath, folderChecksum) {
-
-      return new Promise((resolve, reject) => {
-            logger.info("checkFolderDbIntegrity: Checking folder database integrity, path: " + folderPath);
-
-            var folderDbExist = fs.existsSync(path.join(folderPath, "./appdata/" + databaseName));
-
-            if (folderDbExist) {
-
-                  var databaseBuffer = fs.readFileSync(path.join(folderPath, "./appdata/" + databaseName));
-                  var databaseChecksum = crypto.createHash("sha256");
-                  databaseChecksum.update(databaseBuffer);
-                  var hex = databaseChecksum.digest("hex");
-
-                  if (folderChecksum === hex) {
-                        logger.info("checkFolderDbIntegrity: Successful checking folder database integrity");
-                        resolve({ result: "success" });
-                  } else {
-                        logger.error("checkFolderDbIntegrity: Failed getting folder database: database checksum not same");
-                        reject({ result: "error", reason: "Folder database checksum not same." });
-                  }
-
-            } else {
-                  logger.error("checkFolderDbIntegrity: Failed getting folder database: file not exist");
-                  reject({ result: "error", reason: "Folder database file not exist." });
-            }
       });
 
 }
@@ -203,10 +142,8 @@ function scanFolderImages(folderPath) {
                         statement.reset();
                         db.close();
 
-                        var databaseChecksum = crypto.createHash("sha256");
-                        databaseChecksum.update(buffer);
                         
-                        resolve({ result: "success", checksum: databaseChecksum.digest("hex") });
+                        resolve({ result: "success" });
                   });
             } catch (error) {
                   logger.error("scanFolderImages: failed initializing images scanning and verify integrity of database. Folder path: " + folderPath + "\n" + error);
@@ -248,12 +185,46 @@ function getAllImages(folderPath) {
 
                         db.close();
 
+                        console.log(JSON.stringify(result));
+
                         logger.info("getAllImages: got all images from folder database, folder path: " + folderPath);
                         resolve({ result: "success", items: result });
                   });
 
             } catch (error) {
                   logger.error("getAllImages: failed getting all images from folder database, folder path: " + folderPath + "\n" + error);
+                  reject({ result: "error", reason: error });
+            }
+      });
+
+}
+
+function getImageDefects(folderPath, imageId){
+
+      return new Promise((resolve, reject) => {
+            logger.info("getImageDefects: getting image defect categories list...");
+            var databasePath = path.join(folderPath, "./appdata/" + databaseName);
+            var databaseBuffer, buffer;
+            var result = [];
+
+            try {
+                  databaseBuffer = fs.readFileSync(databasePath);
+
+                  initSqlJs().then((SQL) => {
+                        const db = new SQL.Database(databaseBuffer);
+
+                        var statement = db.prepare("SELECT * FROM image_defects WHERE image_id = " + imageId + ";");
+
+                        while(statement.step()){
+                              result.push(statement.getAsObject());
+                        }
+
+                        logger.info("getImageDefects: Successful get image defect categories list");
+                        resolve({ result: "success", items: result });
+                  });
+
+            } catch (error) {
+                  logger.error("getImageDefects: Failed getting image defect categories list. Reason: " + error);
                   reject({ result: "error", reason: error });
             }
       });
@@ -320,7 +291,6 @@ async function updateImageStatus(folderPath, imageId, imageName, image_status){
                                     logger.info("updateImageStatus: Copying image into path: ./failed/" + defectValue.name + "/" + imageName);
                                     fs.copyFileSync(path.join(folderPath, "./" + imageName), path.join(folderPath, "./failed/" + defectValue.name + "/" + imageName));
                                     logger.info("updateImageStatus: Successful copied image into path: ./failed/" + defectValue.name + "/" + imageName);
-
                               }
 
                               logger.info("updateImageStatus: Successful copied image into failed folder. Image Name: " + imageName);
@@ -331,10 +301,7 @@ async function updateImageStatus(folderPath, imageId, imageName, image_status){
                         logger.info("updateImageStatus: Successful update iamge status. Folder path: " + folderPath + ", Image id: " + imageId + ", Image status: " + JSON.stringify(image_status));
                         db.close();
 
-                        var databaseChecksum = crypto.createHash("sha256");
-                        databaseChecksum.update(buffer);
-
-                        resolve({ result: "success" , checksum: databaseChecksum.digest("hex") });
+                        resolve({ result: "success" });
                   });
             } catch(error) {
                   logger.error("updateImageStatus: Failed update image status. \n" + error);
@@ -346,10 +313,9 @@ async function updateImageStatus(folderPath, imageId, imageName, image_status){
 
 module.exports = folderDatabase = {
       imageStatus: imageStatus,
-      updateFolderDatabaseChecksum,
       checkFolderDatabaseAndFolder,
-      checkFolderDbIntegrity,
       scanFolderImages,
       getAllImages,
+      getImageDefects,
       updateImageStatus,
 }

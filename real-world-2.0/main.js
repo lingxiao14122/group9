@@ -4,8 +4,6 @@ const url = require("url");
 const path = require("path");
 const fs = require('fs');
 
-const crypto = require("crypto");
-
 const initSqlJs = require('sql.js/dist/sql-wasm');
 
 const logger = require("./utils/logger");
@@ -51,78 +49,34 @@ app.on('activate', function () {
 })
 
 ipcMain.on("CHECK_LOCAL_DB_INTEGRITY", async (event, payload) => {
-      logger.info("checkLocalDBIntegrityChannel: Checking local database integrity...");
+      logger.info("checkLocalDBIntegrityChannel: Checking local database availability...");
 
       var localDBExist = fs.existsSync(path.join(path.dirname(app.getPath("exe")), "./" + database.databaseName));
-      var localDBChecksumExist = fs.existsSync(path.join(path.dirname(app.getPath("exe")), "./" + localDatabase.databaseChecksumName));
 
       try {
 
-            if (!localDBExist && !localDBChecksumExist) {
-                  logger.info("checkLocalDBIntegrityChannel: Creating new local database and checksum value...");
+            if(!localDBExist){
+                  logger.info("checkLocalDBIntegrityChannel: Database not exist, creating new local database...");
 
                   var createResult = await database.createDatabase(0, path.join(path.dirname(app.getPath("exe")), "./database.sqlite"));
-                  if (createResult.result === "success") {
-                        fs.writeFileSync(path.join(path.dirname(app.getPath("exe")), "./" + localDatabase.databaseChecksumName), createResult.checksum);
-                  } else {
-                        fs.writeFileSync(path.join(path.dirname(app.getPath("exe")), "./" + localDatabase.databaseChecksumName), "");
-                  }
 
-                  logger.info("checkLocalDBIntegrityChannel: Successful create new local database and checksum value");
+                  logger.info("checkLocalDBIntegrityChannel: Successful create new local database");
                   event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "success" });
             } else {
-
-                  if (!localDBExist || !localDBChecksumExist) {
-                        logger.warn("checkLocalDBIntegrityChannel: local database or database checksum file are missing, recreating new database and checksum...");
-
-                        if (localDBExist) {
-                              logger.warn("checkLocalDBIntegrityChannel: local database exist, backing up database and create new database and checksum");
-                              var renameResult = await database.renameDatabase(path.dirname(app.getPath("exe")));
-                              var createResult = await database.createDatabase(0, path.join(path.dirname(app.getPath("exe")), "./" + database.databaseName));
-
-                              fs.writeFileSync(path.join(path.dirname(app.getPath("exe")), "./" + localDatabase.databaseChecksumName), "");
-                        } else {
-                              var createResult = await database.createDatabase(0, path.join(path.dirname(app.getPath("exe")), "./" + database.databaseName));
-
-                              fs.writeFileSync(path.join(path.dirname(app.getPath("exe")), "./" + localDatabase.databaseChecksumName), "");
-                        }
-
-                        logger.info("checkLocalDBIntegrityChannel: Successful create new database and checksum");
-                        event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "error", code: 1, reason: "Database checksum not same.", solution: "Old database has backed up and recreated." });
-
-                  } else {
-
-                        var hash = fs.readFileSync(path.join(path.dirname(app.getPath("exe")), "./" + localDatabase.databaseChecksumName), "utf-8");
-
-                        var databaseBuffer = fs.readFileSync(path.join(path.dirname(app.getPath("exe")), "./" + database.databaseName));
-                        var databaseChecksum = crypto.createHash("sha256");
-                        databaseChecksum.update(databaseBuffer);
-
-                        if (hash !== databaseChecksum.digest("hex")) {
-                              logger.warn("checkLocalDBIntegrityChannel: Database checksum are different, backup old one and creating new database...");
-                              var renameResult = await database.renameDatabase(path.dirname(app.getPath("exe")));
-                              var createResult = await database.createDatabase(0, path.join(path.dirname(app.getPath("exe")), "./" + database.databaseName));
-
-                              fs.writeFileSync(path.join(path.dirname(app.getPath("exe")), "./" + localDatabase.databaseChecksumName), createResult.checksum);
-                              event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "error", code: 1, reason: "Database checksum not same.", solution: "Old database has backed up and recreated." });
-                        } else {
-                              logger.info("checkLocalDBIntegrityChannel: Successful checking local database integrity");
-                              event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "success" });
-                        }
-
-                  }
-
+                  logger.info("checkLocalDBIntegrityChannel: Successful checked local database");
+                  event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "success" });
             }
 
       } catch (error) {
 
             if(typeof error === "object"){
-                  logger.error("checkLocalDBIntegrityChannel: Failed getting " + localDatabase.databaseChecksumName + " file: \n" + JSON.stringify(error));
+                  logger.error("checkLocalDBIntegrityChannel: Failed checking " + database.databaseName + " file: \n" + JSON.stringify(error));
             } else {
-                  logger.error("checkLocalDBIntegrityChannel: Failed getting " + localDatabase.databaseChecksumName + " file: \n" + error);
+                  logger.error("checkLocalDBIntegrityChannel: Failed checking " + database.databaseName + " file: \n" + error);
             }
             
-            event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "error", code: 2, reason: error });
+            event.reply("CHECK_LOCAL_DB_INTEGRITY", { result: "error", reason: error });
+
       }
 
 });
@@ -149,8 +103,7 @@ ipcMain.on("READ_FOLDER_PATH", async (event, payload) => {
                         var checkResult = await folderDatabase.checkFolderDatabaseAndFolder(result.filePaths.toString());
 
                         if (checkResult.result === "success") {
-                              var insertResult = await localDatabase.insertLocalDatabaseFolder(databasePath, databaseBuffer, process.platform == 'win32' ? path.win32.basename(result.filePaths.toString()) : path.posix.basename(result.filePaths.toString()), result.filePaths, checkResult.databaseChecksum);
-                              var changeResult = await localDatabase.updateLocalDatabaseChecksum();
+                              var insertResult = await localDatabase.insertLocalDatabaseFolder(databasePath, databaseBuffer, process.platform == 'win32' ? path.win32.basename(result.filePaths.toString()) : path.posix.basename(result.filePaths.toString()), result.filePaths);
 
                               if (insertResult.result === "warn") {
                                     logger.warn("readFolderPathChannel: Folder already exist in local database, path: " + result.filePaths);
@@ -233,7 +186,6 @@ ipcMain.on("DELETE_FOLDER", async (event, payload) => {
                   databaseBuffer = fs.readFileSync(databasePath);
 
                   var deleteResult = await localDatabase.deleteLocalDatabaseFolder(databasePath, databaseBuffer, payload._id);
-                  var changeResult = await localDatabase.updateLocalDatabaseChecksum();
 
                   logger.info("deleteFolderChannel: Successful delete folder path in local database, id: " + payload._id);
                   event.reply("DELETE_FOLDER", { result: "success" });
@@ -265,7 +217,6 @@ ipcMain.on("INSERT_NEW_DEFECT", async (event, payload) => {
                   databaseBuffer = fs.readFileSync(databasePath);
 
                   var insertResult = await localDatabase.insertLocalDatabaseDefect(databasePath, databaseBuffer, payload.defect_name);
-                  var changeResult = await localDatabase.updateLocalDatabaseChecksum();
 
                   if (insertResult.result === "warn") {
                         logger.warn("insertNewDefectChannel: Defect category already exist in local database, name: " + payload.defect_name);
@@ -342,7 +293,6 @@ ipcMain.on("DELETE_DEFECT", async (event, payload) => {
                   databaseBuffer = fs.readFileSync(databasePath);
 
                   var deleteResult = localDatabase.deleteLocalDatabaseDefect(databasePath, databaseBuffer, payload._id);
-                  var changeResult = await localDatabase.updateLocalDatabaseChecksum();
 
                   logger.info("deleteDefectChannel: Successful delete defect category in local database, id: " + payload._id);
                   event.reply("DELETE_DEFECT", { result: "success" });
@@ -371,13 +321,11 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
 
             try {
                   var getResult = await localDatabase.getFolderInfoFromLocalDB(payload.folder_id);
-                  var checkIntegrityResult = await folderDatabase.checkFolderDbIntegrity(getResult.item[0].path, getResult.item[0].checksum);
 
-                  if (checkIntegrityResult.result === "success") {
+                  if(getResult.result === "success"){
                         var scanResult = await folderDatabase.scanFolderImages(getResult.item[0].path);
-                        var updateResult = await folderDatabase.updateFolderDatabaseChecksum(getResult.item[0]._id, scanResult.checksum);
-                        var changeResult = await localDatabase.updateLocalDatabaseChecksum();
-                        if (getResult.result === "success" && scanResult.result === "success") {
+
+                        if(scanResult.result === "success"){
                               var imagesResult = await folderDatabase.getAllImages(getResult.item[0].path);
 
                               var reply = {
@@ -386,28 +334,26 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
                                     imagesItem: imagesResult.items,
                               };
 
-                              logger.info("getImagesChannel: Getting all images success, folder_id: " + payload.folder_id);
+                              logger.info("getImagesChannel: Successful getting all images, folder_id: " + payload.folder_id);
                               event.reply("GET_IMAGES", reply);
+
+                        } else {
+
                         }
+
+                  } else {
+
                   }
 
             } catch (error) {
 
-                  if(error.result === "error" && error.code === 1){
-                        logger.warn("getImagesChannel: Folder database Integrity not complete. Reason: " + error.reason);
-                        logger.info("getImagesChannel: Recreating new folder database and checking necessary folders..., path: " + getResult.item[0].path);
-                        var checkResult = await folderDatabase.checkFolderDatabaseAndFolder(getResult.item[0].path, true);
-                        var updateResult = await folderDatabase.updateFolderDatabaseChecksum(getResult.item[0]._id, checkResult.databaseChecksum);
+                  if(typeof error === "object"){
+                        logger.error("getImagesChannel: Failed getting all images failed. Reason: " + JSON.stringify(error));
                   } else {
-
-                        if(typeof error === "object"){
-                              logger.error("getImagesChannel: Failed getting all images failed. Reason: " + JSON.stringify(error));
-                        } else {
-                              logger.error("getImagesChannel: Failed getting all images failed. Reason: " + error);
-                        }
-
-                        event.reply("GET_IMAGES", { result: "error", code: 3, reason: JSON.stringify(error) });
+                        logger.error("getImagesChannel: Failed getting all images failed. Reason: " + error);
                   }
+
+                  event.reply("GET_IMAGES", { result: "error", code: 3, reason: JSON.stringify(error) });
 
             }
 
@@ -454,13 +400,20 @@ ipcMain.on("UPDATE_IMAGE_STATUS", async (event, payload) => {
 
             try {
                   var getFolderResult = await localDatabase.getFolderInfoFromLocalDB(payload.folder_id);
-                  var checkIntegrityResult = await folderDatabase.checkFolderDbIntegrity(getFolderResult.item[0].path, getFolderResult.item[0].checksum);
-
                   var updateResult = await folderDatabase.updateImageStatus(getFolderResult.item[0].path, payload.image_id, payload.image_name, payload.image_status);
-                  var updateChecksumResult = await folderDatabase.updateFolderDatabaseChecksum(getFolderResult.item[0]._id, updateResult.checksum);
-                  var changeResult = await localDatabase.updateLocalDatabaseChecksum();
+
+                  var result = {
+                        status: payload.image_status.status,
+                        defects: [],
+                  };
+                  
+                  if(payload.image_status.status === 2){
+                        var getDefectsResult = await folderDatabase.getImageDefects(getFolderResult.item[0].path, payload.image_id);
+                        result.defects = getDefectsResult.items;
+                  }
+                  
                   logger.info("updateImageStatusChannel: Successful update image status.");
-                  event.reply("UPDATE_IMAGE_STATUS", { result: "success", image_status: payload.image_status });
+                  event.reply("UPDATE_IMAGE_STATUS", { result: "success", image_status: result });
                   
 
             } catch (error) {
