@@ -161,10 +161,10 @@ function scanFolderImages(folderPath) {
                               logger.info("scanFolderImages: Finish updating passed images info from passed folder info into folder database");
                         }
 
+                        var newDefects = [];
                         if(fs.readdirSync(path.join(folderPath, "./failed")).length !== 0){
                               logger.info("scanFolderImages: Updating failed images info from failed folder into folder database...");
-                              var newDefects = [];
-
+                              
                               fs.readdirSync(path.join(folderPath, "./failed")).forEach(file => {
                                     var stats = fs.statSync(path.join(folderPath, "./failed/" + file));
                                     if(stats.isDirectory()){
