@@ -27,11 +27,9 @@
         </template>
         <template #cell(action)="row">
           <b-button size="sm" @click="clickDelete(row.index)">
-            Delete
             <b-icon-trash></b-icon-trash>
           </b-button>
-          <b-button class="ml-2" size="sm" @click="clickOpenExplorer(row.index)">
-            Open In Explorer
+          <b-button class="ml-2" size="sm" @click="clickOpenExplorer">
             <b-icon-folder-symlink></b-icon-folder-symlink>
           </b-button>
         </template>
@@ -65,9 +63,8 @@ export default {
         window.ipc.send("DELETE_FOLDER", { _id: this.items[index]._id });
       }
     },
-    clickOpenExplorer(index) {
+    clickOpenExplorer() {
       console.log("button Open In Explorer clicked!");
-      window.ipc.send("REVEAL_FOLDER_IN_EXPLORER", { path: this.items[index].path });
     },
     clickHandler(tablerow) {
       if(tablerow.exist){

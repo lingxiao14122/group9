@@ -72,6 +72,12 @@
         <template #cell(defects)="data">
           {{ getImageDefectsString(data) }}
         </template>
+
+        <template #cell(action)>
+          <b-button size="sm" @click="clickOpenExplorer">
+            <b-icon-folder-symlink></b-icon-folder-symlink>
+          </b-button>
+        </template>
       </b-table>
     </div>
   </div>
@@ -84,6 +90,7 @@ export default {
       fields: [
         { key: "name", label: "Image Name" },
         { key: "date_created", label: "Date Created" },
+        "action",
       ],
       defaultFields: [
         { key: "name", label: "Image Name" },
@@ -155,6 +162,9 @@ export default {
           },
         });
       }
+    },
+    clickOpenExplorer() {
+      console.log("files.vue action column delete button clicked!")
     },
     tabClicked: function (tabname) {
       this.tableIsDisplaying = tabname;
