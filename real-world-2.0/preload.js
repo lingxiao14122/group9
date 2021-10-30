@@ -5,6 +5,7 @@ const validChannels = [
       "READ_FOLDER_PATH", 
       "GET_ALL_FOLDER", 
       "DELETE_FOLDER",
+      "REVEAL_FOLDER_IN_EXPLORER",
       "INSERT_NEW_DEFECT",
       "GET_ALL_DEFECT",
       "DELETE_DEFECT",

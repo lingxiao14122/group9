@@ -30,7 +30,7 @@
             Delete
             <b-icon-trash></b-icon-trash>
           </b-button>
-          <b-button class="ml-2" size="sm" @click="clickOpenExplorer">
+          <b-button class="ml-2" size="sm" @click="clickOpenExplorer(row.index)">
             Open In Explorer
             <b-icon-folder-symlink></b-icon-folder-symlink>
           </b-button>
@@ -65,8 +65,9 @@ export default {
         window.ipc.send("DELETE_FOLDER", { _id: this.items[index]._id });
       }
     },
-    clickOpenExplorer() {
+    clickOpenExplorer(index) {
       console.log("button Open In Explorer clicked!");
+      window.ipc.send("REVEAL_FOLDER_IN_EXPLORER", { path: this.items[index].path });
     },
     clickHandler(tablerow) {
       if(tablerow.exist){
