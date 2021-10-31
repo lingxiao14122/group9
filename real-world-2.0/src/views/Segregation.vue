@@ -8,22 +8,22 @@
       <!-- Info bar start -->
       <div class="infobar mx-5">
         <!-- row 1 -->
-        <div class="infobar-top d-flex align-items-end justify-content-between">
+        <div class="infobar-1 d-flex align-items-end justify-content-between">
           <h5>Image Name: {{ items[currentImageIndex].name }}</h5>
           <h2>{{ currentImageIndex + 1 }}/{{ items.length }}</h2>
         </div>
         <!-- row 2 -->
-        <div class="infobar-below d-flex justify-content-between">
+        <div class="infobar-2 d-flex justify-content-between">
           <h5>Status: {{ transformStatusToString(items[currentImageIndex].status) }}</h5>
           <h5>
-            All: {{ items.length }}, Pending: {{ count.pending }}, Passed: {{ count.passed }}, Failed: {{ count.failed }}
+            All: {{ items.length }}, Pending: {{ count.pending }}, Passed: {{ count.passed }}, Failed:
+            {{ count.failed }}
           </h5>
         </div>
         <!-- row 3 -->
-        <div class="infobar-below d-flex justify-content-between">
-          <h5>Defect Category: {{ getImageDefectsString() }}</h5>
+        <div class="infobar-3 d-flex align-items-start justify-content-between">
+          <h5 class="w-75">Defect Category: {{ getImageDefectsString() }}</h5>
           <div class="d-flex">
-            <h5>Pending: {{ count.pendingPercent }}%, Passed: {{ count.passedPercent }}%, Failed: {{ count.failedPercent }}% </h5>
             <b-button class="btn ml-2" size="sm" @click="$bvModal.show('modal-fail-percent')">
               <b-icon-info-circle-fill></b-icon-info-circle-fill>
             </b-button>
@@ -87,7 +87,10 @@
 
     <!-- Modal fail percent start -->
     <b-modal id="modal-fail-percent" title="Fail Percentage" hide-footer>
-      <p v-html="modalFailContent"></p>
+      <p v-for="item in modalFail" :key="item">
+        {{ item.title + ": " }}
+        {{ parseFloat(item.percent).toFixed(2) + "%" }}
+      </p>
     </b-modal>
   </div>
 </template>
@@ -128,7 +131,15 @@ export default {
       showModal: false,
       isDefectNotEmpty: false,
       // Fail Percentage Modal state
-      modalFailContent: "defect_1: 10% <br/> defect_2: 90% <br/> content <br/> content <br/> content <br/>",
+      modalFail: [
+        // pls use js to populate this list 👽
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+      ],
       //example of defectOptions
       // [
       //   { text: "Orange", value: "orange" },
@@ -414,5 +425,10 @@ export default {
 .c-image {
   max-height: 100px;
   min-height: 100px;
+}
+
+.infobar-3 h5 {
+  text-align: start;
+  word-break: break-word;
 }
 </style>
