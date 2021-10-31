@@ -41,9 +41,11 @@
               id="input-1"
               v-model="form.defectName"
               placeholder="Enter defect name"
-              required
+              :state="validateState('defectName')"
             >
             </b-form-input>
+
+            <b-form-invalid-feedback id="input-1-live-feedback">This is a required field.</b-form-invalid-feedback>
           </b-form-group>
         </b-form>
         <template #modal-footer>
@@ -58,7 +60,12 @@
 </template>
 
 <script>
+import { validationMixin } from "vuelidate";
+import { required, maxLength, helpers } from "vuelidate/lib/validators";
+const customAlphaNumValidator = helpers.regex("alphaNumAndSpace", /^[a-zA-Z0-9\ \_\-]*$/);
+
 export default {
+  mixins: [validationMixin],
   data() {
     return {
       fields: [
@@ -72,21 +79,39 @@ export default {
       showModal: false,
     };
   },
+  validations: {
+    form: {
+      defectName: {
+        required,
+        maxLength: maxLength(250),
+        customAlphaNumValidator,
+      }
+    }
+  },
   methods: {
+    validateState(name) {
+      const { $dirty, $error } = this.$v.form[name];
+      return $dirty ? !$error : null;
+    },
     onSubmit(event) {
       event.preventDefault();
+      this.$v.form.$touch();
+      if (this.$v.form.$anyError) {
+        return;
+      }
+      
       this.showModal = false;
-      // alert(JSON.stringify(this.form));
-      //this.items.push({name: this.form.defectName})
 
-      window.ipc.send("INSERT_NEW_DEFECT", {
-        defect_name: this.form.defectName,
-      });
+      window.ipc.send("INSERT_NEW_DEFECT", {defect_name: this.form.defectName,});
 
       this.onReset();
     },
     onReset() {
       this.form.defectName = "";
+
+      this.$nextTick(() => {
+        this.$v.$reset();
+      });
     },
     click_detail_btn(index) {
       if (confirm("Are you sure want to delete this defect category?")) {
