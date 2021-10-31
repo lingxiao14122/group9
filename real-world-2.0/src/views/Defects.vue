@@ -134,7 +134,7 @@ export default {
 
     window.ipc.send("GET_ALL_DEFECT", {});
   },
-  beforeDestory() {
+  beforeDestroy() {
     let activeChannel = ["INSERT_NEW_DEFECT", "GET_DEFECT", "DELETE_DEFECT"];
     window.ipc.removeAllListeners(activeChannel);
   },
