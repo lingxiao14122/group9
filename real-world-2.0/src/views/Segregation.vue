@@ -86,8 +86,13 @@
     </div>
 
     <!-- Modal fail percent start -->
-    <b-modal id="modal-fail-percent" title="Fail Percentage" hide-footer>
-      <p v-for="item in modalFail" :key="item">
+    <b-modal id="modal-fail-percent" scrollable  title="Fail Percentage" hide-footer>
+      <p v-for="item in modalFailTop" :key="item">
+        {{ item.title + ": " }}
+        {{ parseFloat(item.percent).toFixed(2) + "%" }}
+      </p>
+      <hr>
+      <p v-for="item in modalFailBottom" :key="item">
         {{ item.title + ": " }}
         {{ parseFloat(item.percent).toFixed(2) + "%" }}
       </p>
@@ -131,8 +136,66 @@ export default {
       showModal: false,
       isDefectNotEmpty: false,
       // Fail Percentage Modal state
-      modalFail: [
+      modalFailTop: [
         // pls use js to populate this list 👽
+        { title: "pending Percentage", percent: 10.0 },
+        { title: "pending Percentage", percent: 10.0 },
+        { title: "pending Percentage", percent: 10.0 },
+        { title: "pending Percentage", percent: 10.0 },
+        { title: "pending Percentage", percent: 10.0 },
+      ],
+      modalFailBottom: [
+        // pls use js to populate this list 👽
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
+        { title: "defect name 1", percent: 10.0 },
         { title: "defect name 1", percent: 10.0 },
         { title: "defect name 1", percent: 10.0 },
         { title: "defect name 1", percent: 10.0 },
