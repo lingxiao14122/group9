@@ -62,7 +62,7 @@
 <script>
 import { validationMixin } from "vuelidate";
 import { required, maxLength, helpers } from "vuelidate/lib/validators";
-const customAlphaNumValidator = helpers.regex("alphaNumAndSpace", /^[a-zA-Z0-9\ \_\-]*$/);
+const customAlphaNumValidator = helpers.regex("alphaNumAndSpace", /^[a-zA-Z0-9\ \_\-]*$/);    // eslint-disable-line
 
 export default {
   mixins: [validationMixin],
