@@ -357,7 +357,6 @@ ipcMain.on("GET_IMAGES", async (event, payload) => {
                   if(getResult.result === "success"){
                         var checkResult = await folderDatabase.checkFolderDatabaseAndFolder(getResult.item[0].path);
                         var scanResult = await folderDatabase.scanFolderImages(getResult.item[0].path);
-                        console.log(scanResult);
 
                         if(scanResult.newDefects.length !== 0){
                               logger.info("getImagesChannel: New defect categories detected while scanning images, inserting into local database...");
