@@ -25,7 +25,7 @@
           <h5 class="w-75">Defect Category: {{ getImageDefectsString() }}</h5>
           <div class="d-flex">
             <b-button class="btn ml-2" size="sm" @click="$bvModal.show('modal-fail-percent')">
-              <b-icon-info-circle-fill></b-icon-info-circle-fill>
+              <b-icon-percent></b-icon-percent>
             </b-button>
           </div>
         </div>
@@ -86,16 +86,23 @@
     </div>
 
     <!-- Modal fail percent start -->
-    <b-modal id="modal-fail-percent" scrollable  title="Fail Percentage" hide-footer>
-      <p v-for="item in modalFailTop" :key="item">
-        {{ item.title + ": " }}
-        {{ parseFloat(item.percent).toFixed(2) + "%" }}
-      </p>
+    <b-modal id="modal-fail-percent" scrollable  title="Progress Percentage" hide-footer>
+      <div v-for="item in modalFailTop" :key="item" style="margin-bottom: 1rem">
+        <p style="margin: 0px;">
+          {{ item.title + ": " }}
+          {{ parseFloat(item.percent).toFixed(2) + "%" }}
+        </p>
+        <b-progress :value="item.percent" max="100" :variant="item.variant" show-progress></b-progress>
+      </div>
       <hr>
-      <p v-for="item in modalFailBottom" :key="item">
-        {{ item.title + ": " }}
-        {{ parseFloat(item.percent).toFixed(2) + "%" }}
-      </p>
+      <h6>Defect Categories</h6>
+      <div v-for="item in modalFailBottom" :key="item" style="margin-bottom: 1rem">
+        <p style="margin: 0px;">
+          {{ item.title + ": " }}
+          {{ parseFloat(item.percent).toFixed(2) + "%" }}
+        </p>
+        <b-progress :value="item.percent" max="100" variant="info" show-progress></b-progress>
+      </div>
     </b-modal>
   </div>
 </template>
@@ -125,9 +132,6 @@ export default {
         pending: 0,
         passed: 0,
         failed: 0,
-        pendingPercent: 0,
-        passedPercent: 0,
-        failedPercent: 0,
       },
       // Button state
       prevBtnIsDisabled: false,
@@ -138,70 +142,12 @@ export default {
       // Fail Percentage Modal state
       modalFailTop: [
         // pls use js to populate this list 👽
-        { title: "pending Percentage", percent: 10.0 },
-        { title: "pending Percentage", percent: 10.0 },
-        { title: "pending Percentage", percent: 10.0 },
-        { title: "pending Percentage", percent: 10.0 },
-        { title: "pending Percentage", percent: 10.0 },
+        { index: 0, title: "Overall Percentage", percent: 0.00, variant: "" },
+        { index: 1, title: "Passed Percentage", percent: 0.00, variant: "success" },
+        { index: 2, title: "Failed Percentage", percent: 0.00, variant: "danger" },
       ],
       modalFailBottom: [
         // pls use js to populate this list 👽
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
-        { title: "defect name 1", percent: 10.0 },
       ],
       //example of defectOptions
       // [
@@ -275,9 +221,10 @@ export default {
     },
     updateCounting() {
       if (this.items.length !== 0) {
-        var pending = 0,
-          passed = 0,
-          failed = 0;
+        var pending = 0, passed = 0, failed = 0;
+        var defectsCount = [];
+        var defectFound;
+        var temp;
 
         for (var i = 0; i < this.items.length; i++) {
           if (this.items[i].status == 0) {
@@ -286,22 +233,47 @@ export default {
             passed++;
           } else if (this.items[i].status == 2) {
             failed++;
+
+            for(var j = 0; j < this.items[i].defects.length; j++){
+              defectFound = defectsCount.findIndex(obj => {
+                return obj.title === this.items[i].defects[j].defect_name;
+              });
+
+              if(defectFound === -1){
+                defectsCount.push({ 
+                  _id: this.items[i].defects[j]._id,
+                  title: this.items[i].defects[j].defect_name,
+                  count: 1,
+                  percent: 1,
+                });
+              } else {
+                temp = defectsCount[defectFound].count;
+                defectsCount[defectFound].count = temp + 1;
+              }
+
+            }
           }
         }
+
+        defectsCount.forEach(defect => {
+          defect.percent = (defect.count / failed) * 100;
+        });
 
         this.count.pending = pending;
         this.count.passed = passed;
         this.count.failed = failed;
-        this.count.pendingPercent = Number((pending / this.items.length) * 100).toFixed(0);
-        this.count.passedPercent = Number((passed / this.items.length) * 100).toFixed(0);
-        this.count.failedPercent = Number((failed / this.items.length) * 100).toFixed(0);
+        this.modalFailTop[0].percent = 100 - ((pending / this.items.length) * 100);
+        this.modalFailTop[1].percent = (passed / this.items.length) * 100;
+        this.modalFailTop[2].percent = (failed / this.items.length) * 100;
+        this.modalFailBottom = defectsCount;
+
       } else {
         this.count.pending = 0;
         this.count.passed = 0;
         this.count.failed = 0;
-        this.count.pendingPercent = 0;
-        this.count.passedPercent = 0;
-        this.count.failedPercent = 0;
+        this.modalFailTop[0].percent = 0;
+        this.modalFailTop[1].percent = 0;
+        this.modalFailTop[2].percent = 0;
       }
     },
     passBtnClicked() {
