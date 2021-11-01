@@ -54,7 +54,7 @@
         </div>
         <div class="flex-grow-1">
           <b-button class="m-2 btn-seg-custom" variant="primary" @click="passBtnClicked()">PASS</b-button>
-          <b-button class="m-2 btn-seg-custom" variant="danger" @click="showingModel()">FAIL</b-button>
+          <b-button class="m-2 btn-seg-custom" variant="danger" @click="showingDefectModal()">FAIL</b-button>
         </div>
         <div>
           <b-button
@@ -69,9 +69,9 @@
       </div>
     </div>
 
-    <!-- Modal form start -->
-    <div class="appmodal">
-      <b-modal title="Choose Defect" v-model="showModal" :hide-footer="isDefectNotEmpty" @ok="defectModalOk">
+    <!-- Modal choose defect start -->
+    <div class="modal-defect">
+      <b-modal id="choose-defect-modal" title="Choose Defect" v-model="showDefectModal" :hide-footer="isDefectNotEmpty">
         <b-form-group v-slot="{ ariaDescribedby }">
           <h6 v-if="isDefectNotEmpty">Defect Category are empty.</h6>
           <b-form-checkbox-group
@@ -82,22 +82,54 @@
             size="lg"
           ></b-form-checkbox-group>
         </b-form-group>
+        <template #modal-footer>
+          <div class="d-flex flex-grow-1 justify-content-between">
+            <b-button v-b-modal.new-defect-modal>Add New Defect</b-button>
+            <div class="d-flex">
+              <b-button class="mx-1" @click="$bvModal.hide('defect-modal-form')">Cancel</b-button>
+              <b-button @click="defectModalOk" variant="primary">OK</b-button>
+            </div>
+          </div>
+        </template>
+      </b-modal>
+    </div>
+
+    <!-- Modal New Defect start -->
+    <div class="new-defect">
+      <b-modal v-model="showNewDefectModal" id="new-defect-modal" title="New Defect Category">
+        <b-form id="new-defect-form" @submit="onNewDefectSubmit" @reset="onNewDefectReset">
+          <b-form-group id="input-group-1" label="Defect Name:" label-for="input-1">
+            <b-form-input
+              id="input-1"
+              v-model="newDefectForm.defectName"
+              placeholder="Enter defect name"
+              :state="validateState('defectName')"
+            >
+            </b-form-input>
+
+            <b-form-invalid-feedback id="input-1-live-feedback">This is a required field.</b-form-invalid-feedback>
+          </b-form-group>
+        </b-form>
+        <template #modal-footer>
+          <b-button type="reset" form="new-defect-form">Reset</b-button>
+          <b-button type="submit" form="new-defect-form" variant="primary">Submit</b-button>
+        </template>
       </b-modal>
     </div>
 
     <!-- Modal fail percent start -->
-    <b-modal id="modal-fail-percent" scrollable  title="Progress Percentage" hide-footer>
+    <b-modal id="modal-fail-percent" scrollable title="Progress Percentage" hide-footer>
       <div v-for="item in modalFailTop" :key="item" style="margin-bottom: 1rem">
-        <p style="margin: 0px;">
+        <p style="margin: 0px">
           {{ item.title + ": " }}
           {{ parseFloat(item.percent).toFixed(2) + "%" }}
         </p>
         <b-progress :value="item.percent" max="100" :variant="item.variant" show-progress></b-progress>
       </div>
-      <hr>
+      <hr />
       <h6>Defect Categories</h6>
       <div v-for="item in modalFailBottom" :key="item" style="margin-bottom: 1rem">
-        <p style="margin: 0px;">
+        <p style="margin: 0px">
           {{ item.title + ": " }}
           {{ parseFloat(item.percent).toFixed(2) + "%" }}
         </p>
@@ -137,17 +169,20 @@ export default {
       prevBtnIsDisabled: false,
       nextBtnIsDisabled: false,
       // Defect Modal state
-      showModal: false,
+      showDefectModal: false,
       isDefectNotEmpty: false,
+      //New Defect Modal state
+      showNewDefectModal: false,
+      newDefectForm: {
+        defectName: "",
+      },
       // Fail Percentage Modal state
       modalFailTop: [
-        // pls use js to populate this list 👽
-        { index: 0, title: "Overall Percentage", percent: 0.00, variant: "" },
-        { index: 1, title: "Passed Percentage", percent: 0.00, variant: "success" },
-        { index: 2, title: "Failed Percentage", percent: 0.00, variant: "danger" },
+        { index: 0, title: "Overall Percentage", percent: 0.0, variant: "" },
+        { index: 1, title: "Passed Percentage", percent: 0.0, variant: "success" },
+        { index: 2, title: "Failed Percentage", percent: 0.0, variant: "danger" },
       ],
       modalFailBottom: [
-        // pls use js to populate this list 👽
       ],
       //example of defectOptions
       // [
@@ -221,7 +256,9 @@ export default {
     },
     updateCounting() {
       if (this.items.length !== 0) {
-        var pending = 0, passed = 0, failed = 0;
+        var pending = 0,
+          passed = 0,
+          failed = 0;
         var defectsCount = [];
         var defectFound;
         var temp;
@@ -234,13 +271,13 @@ export default {
           } else if (this.items[i].status == 2) {
             failed++;
 
-            for(var j = 0; j < this.items[i].defects.length; j++){
-              defectFound = defectsCount.findIndex(obj => {
+            for (var j = 0; j < this.items[i].defects.length; j++) {
+              defectFound = defectsCount.findIndex((obj) => {
                 return obj.title === this.items[i].defects[j].defect_name;
               });
 
-              if(defectFound === -1){
-                defectsCount.push({ 
+              if (defectFound === -1) {
+                defectsCount.push({
                   _id: this.items[i].defects[j]._id,
                   title: this.items[i].defects[j].defect_name,
                   count: 1,
@@ -250,23 +287,21 @@ export default {
                 temp = defectsCount[defectFound].count;
                 defectsCount[defectFound].count = temp + 1;
               }
-
             }
           }
         }
 
-        defectsCount.forEach(defect => {
+        defectsCount.forEach((defect) => {
           defect.percent = (defect.count / failed) * 100;
         });
 
         this.count.pending = pending;
         this.count.passed = passed;
         this.count.failed = failed;
-        this.modalFailTop[0].percent = 100 - ((pending / this.items.length) * 100);
+        this.modalFailTop[0].percent = 100 - (pending / this.items.length) * 100;
         this.modalFailTop[1].percent = (passed / this.items.length) * 100;
         this.modalFailTop[2].percent = (failed / this.items.length) * 100;
         this.modalFailBottom = defectsCount;
-
       } else {
         this.count.pending = 0;
         this.count.passed = 0;
@@ -279,13 +314,15 @@ export default {
     passBtnClicked() {
       this.sendIpcAndUpdateImageStatus(0);
     },
-    showingModel() {
-      this.showModal = true;
+    showingDefectModal() {
+      this.showDefectModal = true;
       window.ipc.send("GET_ALL_DEFECT", {});
     },
     defectModalOk() {
       // when ok button on modal is clicked
       this.sendIpcAndUpdateImageStatus(1);
+      // manually hide the modal
+      this.$bvModal.hide("defect-modal-form");
     },
     //if status = 0 means image pass, status = 1 means image failed,
     sendIpcAndUpdateImageStatus(status) {
@@ -357,6 +394,16 @@ export default {
         return "-";
       }
     },
+    // Modal New Defect methods start
+    // form state is "newDefectForm", please refractor
+    validateState() {
+    },
+    onNewDefectSubmit(event) {
+      event.preventDefault();
+    },
+    onNewDefectReset() {
+    },
+    // Modal New Defect methods end
   },
   mounted() {
     window.ipc.on("CHECK_IMAGE_AVAILABILITY", (payload) => {
