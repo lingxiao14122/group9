@@ -45,7 +45,7 @@
             >
             </b-form-input>
 
-            <b-form-invalid-feedback id="input-1-live-feedback">This is a required field.</b-form-invalid-feedback>
+            <b-form-invalid-feedback id="input-1-live-feedback">This is a required field and only for alphabets and numbers.</b-form-invalid-feedback>
           </b-form-group>
         </b-form>
         <template #modal-footer>
@@ -122,12 +122,12 @@ export default {
   mounted() {
     window.ipc.on("INSERT_NEW_DEFECT", (payload) => {
       if (payload.result == "success") {
-        this.toast("Successful adding defect category.");
+        this.toast("Successful adding new defect category.");
       } else if (payload.result == "error") {
-        this.toast("Failed adding defect category", "error");
+        this.toast("Failed adding new defect category", "error");
       } else if (payload.result == "warn") {
         this.toast(
-          "Failed adding defect category. Reason: " + payload.reason,
+          "Failed adding new defect category. Reason: " + payload.reason,
           "error"
         );
       }
@@ -135,7 +135,6 @@ export default {
     });
 
     window.ipc.on("GET_ALL_DEFECT", (payload) => {
-      console.log(payload);
       if (payload.result == "success") {
         this.items = payload.items;
       } else if (payload.result == "error") {
