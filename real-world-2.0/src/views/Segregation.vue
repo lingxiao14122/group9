@@ -86,7 +86,7 @@
           <div class="d-flex flex-grow-1 justify-content-between">
             <b-button v-b-modal.new-defect-modal>Add New Defect</b-button>
             <div class="d-flex">
-              <b-button class="mx-1" @click="$bvModal.hide('defect-modal-form')">Cancel</b-button>
+              <b-button class="mx-1" @click="$bvModal.hide('choose-defect-modal')">Cancel</b-button>
               <b-button @click="defectModalOk" variant="primary">OK</b-button>
             </div>
           </div>
