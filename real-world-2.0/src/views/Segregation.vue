@@ -407,7 +407,6 @@ export default {
     },
     onNewDefectSubmit(event) {
       event.preventDefault();
-      console.log(event);
       this.$v.newDefectForm.$touch();
       if (this.$v.newDefectForm.$anyError) {
         return;
