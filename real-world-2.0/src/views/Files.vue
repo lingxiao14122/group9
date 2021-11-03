@@ -76,8 +76,19 @@
           <b-button size="sm" @click="clickOpenExplorer(row)">
             <b-icon-folder-symlink></b-icon-folder-symlink>
           </b-button>
+
+          <b-button class="ml-2" size="sm" @click="clickPreviewImage(row)">
+            <b-icon-image-fill></b-icon-image-fill>
+          </b-button>
         </template>
       </b-table>
+    </div>
+    <div class="image-preview">
+      <b-modal v-model="showImagePreviewModal" id="image-preview-modal" :title="currentImagePreviewName" hide-footer>
+        <div>
+          <img :src="currentImagePreview" alt="" style="filter: brightness(50%);">
+        </div>
+      </b-modal>
     </div>
   </div>
 </template>
@@ -129,6 +140,10 @@ export default {
         passed: "passed",
         all: "all",
       },
+      //image preview modal
+      showImagePreviewModal: false,
+      currentImagePreviewName: "",
+      currentImagePreview: null,
     };
   },
   props: {
@@ -166,8 +181,12 @@ export default {
       }
     },
     clickOpenExplorer(row) {
-      console.log(row);
       window.ipc.send("REVEAL_FOLDER_IN_EXPLORER", { path: row.item.path });
+    },
+    clickPreviewImage(row){
+      this.currentImagePreviewName = row.item.name;
+      this.currentImagePreview = row.item.path;
+      this.showImagePreviewModal = true;
     },
     tabClicked: function (tabname) {
       this.tableIsDisplaying = tabname;
