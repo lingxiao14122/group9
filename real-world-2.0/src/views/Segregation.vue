@@ -107,7 +107,7 @@
             >
             </b-form-input>
 
-            <b-form-invalid-feedback id="input-1-live-feedback">This is a required field.</b-form-invalid-feedback>
+            <b-form-invalid-feedback id="input-1-live-feedback">This is a required field and only for alphabets and numbers.</b-form-invalid-feedback>
           </b-form-group>
         </b-form>
         <template #modal-footer>
@@ -140,7 +140,12 @@
 </template>
 
 <script>
+import { validationMixin } from "vuelidate";
+import { required, maxLength, helpers } from "vuelidate/lib/validators";
+const customAlphaNumValidator = helpers.regex("alphaNumAndSpace", /^[a-zA-Z0-9\ \_\-]*$/);    // eslint-disable-line
+
 export default {
+  mixins: [validationMixin],
   props: {
     folder_id: {
       type: Number,
@@ -182,8 +187,7 @@ export default {
         { index: 1, title: "Passed Percentage", percent: 0.0, variant: "success" },
         { index: 2, title: "Failed Percentage", percent: 0.0, variant: "danger" },
       ],
-      modalFailBottom: [
-      ],
+      modalFailBottom: [],
       //example of defectOptions
       // [
       //   { text: "Orange", value: "orange" },
@@ -193,16 +197,17 @@ export default {
       // ]
       defectOptions: [],
       defectSelected: [],
-      // pathToFolder: "C:\\Users\\lingx\\Desktop\\DeepPCB\\PCBData\\group00041\\00041",
-      // //   https://github.com/tangsanli5201/DeepPCB
-      // imageCollection: [
-      //   "00041000_temp.jpg",
-      //   "00041000_test.jpg",
-      //   "00041001_temp.jpg",
-      //   "00041001_test.jpg",
-      //   "00041002_temp.jpg",
-      // ],
+      
     };
+  },
+  validations: {
+    newDefectForm: {
+      defectName: {
+        required,
+        maxLength: maxLength(250),
+        customAlphaNumValidator,
+      }
+    }
   },
   methods: {
     checkBtnDisable() {
@@ -396,12 +401,30 @@ export default {
     },
     // Modal New Defect methods start
     // form state is "newDefectForm", please refractor
-    validateState() {
+    validateState(name) {
+      const { $dirty, $error } = this.$v.newDefectForm[name];
+      return $dirty ? !$error : null;
     },
     onNewDefectSubmit(event) {
       event.preventDefault();
+      console.log(event);
+      this.$v.newDefectForm.$touch();
+      if (this.$v.newDefectForm.$anyError) {
+        return;
+      }
+
+      this.showNewDefectModal = false;
+
+      window.ipc.send("INSERT_NEW_DEFECT", {defect_name: this.newDefectForm.defectName,});
+
+      this.onNewDefectReset();
     },
     onNewDefectReset() {
+      this.newDefectForm.defectName = "";
+
+      this.$nextTick(() => {
+        this.$v.$reset();
+      });
     },
     // Modal New Defect methods end
   },
@@ -446,6 +469,20 @@ export default {
       }
     });
 
+    window.ipc.on("INSERT_NEW_DEFECT", (payload) => {
+      if (payload.result == "success") {
+        this.toast("Successful adding new defect category.");
+      } else if (payload.result == "error") {
+        this.toast("Failed adding new defect category", "error");
+      } else if (payload.result == "warn") {
+        this.toast(
+          "Failed adding new defect category. Reason: " + payload.reason,
+          "error"
+        );
+      }
+      window.ipc.send("GET_ALL_DEFECT", {});
+    });
+
     window.ipc.on("UPDATE_IMAGE_STATUS", (payload) => {
       if (payload.result == "success") {
         this.items[this.currentImageIndex].status = payload.image_status.status;
@@ -463,7 +500,7 @@ export default {
     this.checkImageAvailablity(0);
   },
   beforeDestroy() {
-    let activeChannel = ["CHECK_IMAGE_AVAILABILITY", "GET_ALL_DEFECT", "UPDATE_IMAGE_STATUS"];
+    let activeChannel = ["CHECK_IMAGE_AVAILABILITY", "GET_ALL_DEFECT", "INSERT_NEW_DEFECT", "UPDATE_IMAGE_STATUS"];
     window.ipc.removeAllListeners(activeChannel);
   },
 };
