@@ -85,8 +85,8 @@
     </div>
     <div class="image-preview">
       <b-modal v-model="showImagePreviewModal" id="image-preview-modal" :title="currentImagePreviewName" hide-footer>
-        <div>
-          <img :src="currentImagePreview" alt="" style="filter: brightness(50%);">
+        <div class="d-flex justify-content-center">
+          <img :src="currentImagePreview" alt="" style="max-width: 100%;">
         </div>
       </b-modal>
     </div>
