@@ -493,6 +493,10 @@ export default {
       } else if (payload.result == "error") {
         this.toast("Failed updating current image status.", "error");
       }
+
+      if(this.showDefectModal === true){
+        this.showDefectModal = false;
+      }
     });
 
     this.currentImageIndex = this.index;
