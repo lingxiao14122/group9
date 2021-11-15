@@ -59,11 +59,13 @@
     "appId": "realWorld.group9.ImageSegregationSystem",
     "win": {
       "target": [
-        "portable"
+        "nsis"
       ]
     },
-    "portable": {
-      "artifactName": "ImageSegregationSystem_portable.exe"
+    "nsis": {
+      "oneClick": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true
     },
     "directories": {
       "output": "build/output",
