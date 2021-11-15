@@ -9,7 +9,7 @@
             class="btn btn-primary btn-lg mt-2"
             @click="clickNewFolder"
           >
-            New Folder
+            Choose New Folder
           </button>
         </div>
       </div>
